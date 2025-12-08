@@ -17,12 +17,12 @@ const nextConfig = {
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],
-    unoptimized: process.env.NODE_ENV === 'production',
+    unoptimized: true,
   },
   
-  // Environment variables
+  // Environment variables with fallback
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
   },
   
   // Webpack optimizations
@@ -35,6 +35,12 @@ const nextConfig = {
         tls: false,
       };
     }
+    
+    // Ignore specific warnings
+    config.ignoreWarnings = [
+      { module: /node_modules/ },
+    ];
+    
     return config;
   },
 }

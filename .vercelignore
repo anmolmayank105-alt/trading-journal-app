@@ -1,0 +1,21 @@
+# Ignore backend services
+backend/
+
+# Ignore config files
+config/
+
+# Ignore documentation
+docs/
+
+# Ignore development files
+*.log
+.DS_Store
+.env*.local
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# Keep only frontend
+!frontend/

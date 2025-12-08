@@ -1,16 +1,21 @@
 // API client configuration for connecting to backend services
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+// Fallback API URL for easy deployment without backend
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 
+                (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+                  ? 'http://localhost:3001/api/v1' 
+                  : '');
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased timeout for deployment
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true,
+  validateStatus: (status) => status < 500, // Don't throw on 4xx errors
 });
 
 // Token storage keys
