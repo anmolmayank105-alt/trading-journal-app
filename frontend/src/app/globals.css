@@ -1,0 +1,209 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Performance optimizations */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar - Dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.5);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.7);
+}
+
+/* Custom scrollbar - Light mode */
+.light ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.light ::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.8);
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 4px;
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+/* Glass morphism utilities - Dark mode */
+.dark .glass {
+  @apply bg-slate-900/80 border border-white/10;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass-hover {
+  @apply hover:bg-slate-800/80 hover:border-white/20 transition-colors duration-150;
+}
+
+/* Glass morphism utilities - Light mode */
+.light .glass {
+  @apply bg-white/80 border border-slate-200;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.light .glass-hover {
+  @apply hover:bg-slate-50/90 hover:border-slate-300 transition-colors duration-150;
+}
+
+/* Gradient text */
+.gradient-text {
+  @apply bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent;
+}
+
+/* Card styles */
+.dark .card {
+  @apply bg-slate-900/80 border border-white/10 rounded-2xl p-6;
+  backdrop-filter: blur(12px);
+}
+
+.light .card {
+  @apply bg-white/90 border border-slate-300 rounded-2xl p-6 shadow-lg shadow-slate-200/50;
+  backdrop-filter: blur(12px);
+}
+
+/* Button styles - Dark mode */
+.btn-primary {
+  @apply bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 
+         text-white font-medium py-2.5 px-6 rounded-xl transition-colors duration-150 
+         shadow-lg shadow-indigo-500/25;
+}
+
+.dark .btn-secondary {
+  @apply bg-slate-800 border border-slate-600 hover:bg-slate-700 hover:border-slate-500 text-white font-medium py-2.5 px-6 rounded-xl transition-colors duration-150;
+}
+
+.light .btn-secondary {
+  @apply bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 text-slate-700 font-medium py-2.5 px-6 rounded-xl transition-colors duration-150 shadow-sm;
+}
+
+.btn-danger {
+  @apply bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 
+         text-white font-medium py-2.5 px-6 rounded-xl transition-colors duration-150 
+         shadow-lg shadow-red-500/25;
+}
+
+/* Input styles - Dark mode */
+.dark .input {
+  @apply w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 
+         text-white placeholder-slate-400 
+         focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500
+         transition-colors duration-150;
+}
+
+/* Input styles - Light mode */
+.light .input {
+  @apply w-full bg-white border border-slate-300 rounded-xl px-4 py-3 
+         text-slate-900 placeholder-slate-400 
+         focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500
+         transition-colors duration-150 shadow-sm;
+}
+
+/* Stat card - Dark mode */
+.dark .stat-card {
+  @apply bg-slate-900/80 border border-white/10 rounded-2xl p-6 transition-all duration-200 hover:bg-slate-800/80 hover:border-white/20;
+  backdrop-filter: blur(12px);
+}
+
+/* Stat card - Light mode */
+.light .stat-card {
+  @apply bg-white/90 border border-slate-300 rounded-2xl p-6 transition-all duration-200 hover:shadow-xl hover:border-indigo-200 shadow-lg shadow-slate-200/50;
+  backdrop-filter: blur(12px);
+}
+
+/* Table styles */
+.dark .table-row {
+  @apply border-b border-slate-700/50 hover:bg-slate-800/50 transition-colors duration-100;
+}
+
+.light .table-row {
+  @apply border-b border-slate-200 hover:bg-indigo-50/50 transition-colors duration-100;
+}
+
+/* Badge styles */
+.badge {
+  @apply px-2.5 py-1 rounded-full text-xs font-semibold;
+}
+
+.badge-success {
+  @apply bg-emerald-500/20 text-emerald-500 border border-emerald-500/30;
+}
+
+.badge-danger {
+  @apply bg-red-500/20 text-red-500 border border-red-500/30;
+}
+
+.badge-warning {
+  @apply bg-amber-500/20 text-amber-600 border border-amber-500/30;
+}
+
+.badge-info {
+  @apply bg-blue-500/20 text-blue-500 border border-blue-500/30;
+}
+
+/* Loading skeleton */
+.dark .skeleton {
+  @apply bg-slate-800 animate-pulse rounded;
+}
+
+.light .skeleton {
+  @apply bg-slate-200 animate-pulse rounded;
+}
+
+/* Light mode text colors override */
+.light {
+  @apply text-slate-900;
+}
+
+.light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
+  @apply text-slate-900;
+}
+
+.light p {
+  @apply text-slate-600;
+}
+
+.light .text-white {
+  @apply text-slate-900;
+}
+
+.light .text-slate-400 {
+  @apply text-slate-500;
+}
+
+.light .text-slate-300 {
+  @apply text-slate-600;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

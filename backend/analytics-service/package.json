@@ -1,0 +1,35 @@
+{
+  "name": "@stock-tracker/analytics-service",
+  "version": "0.1.0",
+  "description": "Analytics and reporting service for Stock Tracker",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src/**/*.ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@stock-tracker/shared": "file:../../shared",
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.22.4",
+    "pino": "^8.17.1",
+    "pino-pretty": "^10.3.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "date-fns": "^2.30.0",
+    "luxon": "^3.4.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.10.5",
+    "@types/luxon": "^3.3.7",
+    "typescript": "^5.3.3",
+    "ts-node-dev": "^2.0.0"
+  }
+}
