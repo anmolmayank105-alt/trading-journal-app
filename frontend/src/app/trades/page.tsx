@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import AddTradeModal from '@/components/AddTradeModal';
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function TradesPage() {
+function TradesContent() {
   const searchParams = useSearchParams();
   const symbolFromUrl = searchParams.get('symbol');
   const dateFromUrl = searchParams.get('date');
@@ -472,5 +472,20 @@ export default function TradesPage() {
         trade={deletingTrade}
       />
     </AppLayout>
+  );
+}
+
+export default function TradesPage() {
+  return (
+    <Suspense fallback={
+      <AppLayout>
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-slate-800 rounded w-48" />
+          <div className="h-96 bg-slate-800 rounded-xl" />
+        </div>
+      </AppLayout>
+    }>
+      <TradesContent />
+    </Suspense>
   );
 }
