@@ -35,11 +35,11 @@ const GridSkeleton = ({ count = 3 }: { count?: number }) => (
 export function lazyLoad<P extends Record<string, any>>(
   importFn: () => Promise<{ default: ComponentType<P> }>,
   loadingComponent?: ComponentType
-) {
+): ComponentType<P> {
   return dynamic(importFn, {
     ssr: false,
     loading: loadingComponent || LoadingSpinner,
-  });
+  }) as ComponentType<P>;
 }
 
 /**
@@ -47,11 +47,11 @@ export function lazyLoad<P extends Record<string, any>>(
  */
 export function lazyLoadChart<P extends Record<string, any>>(
   importFn: () => Promise<{ default: ComponentType<P> }>
-) {
+): ComponentType<P> {
   return dynamic(importFn, {
     ssr: false,
     loading: CardSkeleton,
-  });
+  }) as ComponentType<P>;
 }
 
 /**
@@ -60,9 +60,9 @@ export function lazyLoadChart<P extends Record<string, any>>(
 export function lazyLoadWithGrid<P extends Record<string, any>>(
   importFn: () => Promise<{ default: ComponentType<P> }>,
   gridCount = 3
-) {
+): ComponentType<P> {
   return dynamic(importFn, {
     ssr: false,
     loading: () => <GridSkeleton count={gridCount} />,
-  });
+  }) as ComponentType<P>;
 }
