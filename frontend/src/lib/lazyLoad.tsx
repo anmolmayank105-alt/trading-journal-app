@@ -34,11 +34,11 @@ const GridSkeleton = ({ count = 3 }: { count?: number }) => (
  */
 export function lazyLoad<P extends Record<string, any>>(
   importFn: () => Promise<{ default: ComponentType<P> }>,
-  loadingComponent?: ComponentType
+  loadingComponent?: React.ComponentType
 ): ComponentType<P> {
   return dynamic(importFn, {
     ssr: false,
-    loading: loadingComponent || LoadingSpinner,
+    loading: loadingComponent ? () => React.createElement(loadingComponent) : LoadingSpinner,
   }) as ComponentType<P>;
 }
 
