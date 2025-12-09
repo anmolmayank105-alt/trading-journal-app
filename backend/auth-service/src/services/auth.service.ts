@@ -15,7 +15,7 @@ import {
   TokenPayload,
   UserResponseDTO,
   ChangePasswordDTO,
-} from '@stock-tracker/shared/types';
+} from '../../../shared/dist/types';
 import {
   InvalidCredentialsError,
   AlreadyExistsError,
@@ -27,7 +27,7 @@ import {
   generateToken,
   verifyPassword,
   logger,
-} from '@stock-tracker/shared/utils';
+} from '../../../shared/dist/utils';
 
 // ============= Cache Configuration =============
 // Session cache: 15 min TTL (match access token expiry)
@@ -513,21 +513,25 @@ export class AuthService {
   }
   
   private toUserResponse(user: UserDocument): UserResponseDTO {
-    // Debug: log user object
-    console.log('toUserResponse called with user:', JSON.stringify({
-      id: user._id?.toString(),
-      email: user.email,
-      hasSubscription: !!user.subscription,
-      subscriptionRaw: user.subscription,
-      hasPreferences: !!user.preferences,
-    }, null, 2));
-    
-    // Safely extract subscription with defaults
-    const subscription = user.subscription || {};
-    const preferences = user.preferences || {};
+    // Safely extract user data with proper null checks
+    const userObj = user.toObject ? user.toObject() : user;
+    const subscription = userObj.subscription || user.subscription || {
+      plan: 'free',
+      status: 'active',
+      startDate: new Date(),
+      features: []
+    };
+    const preferences = userObj.preferences || user.preferences || {
+      theme: 'system',
+      currency: 'INR',
+      timezone: 'Asia/Kolkata',
+      language: 'en',
+      dateFormat: 'DD/MM/YYYY',
+      notifications: {}
+    };
     
     return {
-      id: user._id.toString(),
+      id: (user._id || user.id).toString(),
       email: user.email,
       username: user.username,
       firstName: user.firstName,

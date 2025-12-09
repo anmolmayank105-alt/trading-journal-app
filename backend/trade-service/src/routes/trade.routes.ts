@@ -5,23 +5,11 @@
 import { Router } from 'express';
 import { tradeController } from '../controllers';
 import { authenticate } from '../middleware';
-import { Types } from 'mongoose';
 
 const router = Router();
 
-// Temporary: Set default user until auth is enabled
-const DEFAULT_USER_ID = new Types.ObjectId('000000000000000000000000');
-router.use((req: any, res, next) => {
-  req.user = { 
-    userId: DEFAULT_USER_ID.toString(), 
-    email: 'user@example.com' 
-  };
-  next();
-});
-
 // All routes require authentication
-// TODO: Enable authentication when auth service is ready
-// router.use(authenticate as any);
+router.use(authenticate as any);
 
 // Trade CRUD routes
 router.post('/', tradeController.createTrade.bind(tradeController) as any);

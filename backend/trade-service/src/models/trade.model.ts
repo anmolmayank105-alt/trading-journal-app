@@ -11,7 +11,7 @@ import {
   TradeStatus,
   DEFAULT_PNL,
   DEFAULT_TAXES,
-} from '@stock-tracker/shared/types';
+} from '../../../shared/dist/types';
 
 // ============= Trade Document Interface =============
 

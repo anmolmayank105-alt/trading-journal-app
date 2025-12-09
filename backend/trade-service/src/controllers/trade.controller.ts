@@ -3,9 +3,15 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { Types } from 'mongoose';
 import { tradeService, TradeQueryOptions } from '../services';
-import { validate, schemas } from '@stock-tracker/shared/utils';
-import { AuthenticatedRequest } from '@stock-tracker/shared/types';
+import { validate, schemas } from '../../../shared/dist/utils';
+import { AuthenticatedRequest } from '../../../shared/dist/types';
+
+// Helper to validate ObjectId
+function isValidObjectId(id: string): boolean {
+  return Types.ObjectId.isValid(id) && new Types.ObjectId(id).toString() === id;
+}
 
 export class TradeController {
   
@@ -41,6 +47,12 @@ export class TradeController {
       
       if (!userId) {
         res.status(401).json({ success: false, error: { code: 'AUTH_001', message: 'Unauthorized' } });
+        return;
+      }
+      
+      // Validate tradeId format
+      if (!isValidObjectId(tradeId)) {
+        res.status(400).json({ success: false, error: { code: 'VALIDATION_001', message: 'Invalid trade ID format' } });
         return;
       }
       

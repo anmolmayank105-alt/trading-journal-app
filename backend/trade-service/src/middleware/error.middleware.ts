@@ -8,7 +8,7 @@ import {
   ValidationError,
   NotFoundError,
   logger,
-} from '@stock-tracker/shared/utils';
+} from '../../../shared/dist/utils';
 import { ZodError } from 'zod';
 
 export const errorHandler = (
@@ -32,8 +32,8 @@ export const errorHandler = (
       error: {
         code: 'VAL_001',
         message: 'Validation failed',
-        details: err.errors.map(e => ({
-          field: e.path.join('.'),
+        details: err.issues.map((e) => ({
+          field: String(e.path.join('.')),
           message: e.message,
         })),
       },

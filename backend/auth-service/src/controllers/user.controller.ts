@@ -4,7 +4,7 @@
 
 import { Response, NextFunction } from 'express';
 import { userService } from '../services';
-import { AuthenticatedRequest } from '@stock-tracker/shared/types';
+import { AuthenticatedRequest } from '../../../shared/dist/types';
 
 export class UserController {
   

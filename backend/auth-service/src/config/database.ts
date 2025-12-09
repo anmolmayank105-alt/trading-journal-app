@@ -3,7 +3,7 @@
  */
 
 import mongoose from 'mongoose';
-import { logger } from '@stock-tracker/shared/utils';
+import { logger } from '../../../shared/dist/utils';
 
 const MONGODB_URI = process.env.MONGODB_URI || '';
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'trading_analytics';

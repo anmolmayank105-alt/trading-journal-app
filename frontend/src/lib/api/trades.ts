@@ -11,6 +11,9 @@ const tradeApiClient = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
   },
   withCredentials: true,
 });
@@ -108,7 +111,6 @@ function mapTradeToApi(trade: Partial<Trade>): any {
 // Get user's trades
 export async function getTrades(filters?: TradeFilter): Promise<Trade[]> {
   try {
-    console.log('🔍 getTrades called with filters:', filters);
     const params: Record<string, string> = {};
     if (filters?.symbol) params.symbol = filters.symbol;
     if (filters?.status) params.status = filters.status;

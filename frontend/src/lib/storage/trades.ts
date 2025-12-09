@@ -39,13 +39,13 @@ export function claimAllTrades(): { claimed: number; error?: string } {
   return { claimed };
 }
 
-// Debug: Get all trades regardless of user
-export function getAllTradesDebug(): Trade[] {
-  return getFromStorage<Trade[]>(STORAGE_KEYS.TRADES, []);
-}
-
-// Make functions available globally for debugging
-if (typeof window !== 'undefined') {
+// Debug functions - only available in development
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  // Debug: Get all trades regardless of user
+  const getAllTradesDebug = (): Trade[] => {
+    return getFromStorage<Trade[]>(STORAGE_KEYS.TRADES, []);
+  };
+  
   (window as any).claimAllTrades = claimAllTrades;
   (window as any).getAllTradesDebug = getAllTradesDebug;
 }

@@ -13,14 +13,14 @@ import {
   TradeStatus,
   DEFAULT_PNL,
   DEFAULT_TAXES,
-} from '@stock-tracker/shared/types';
+} from '../../../shared/dist/types';
 import {
   NotFoundError,
   InvalidInputError,
   TradeAlreadyClosedError,
   InvalidTradeStateError,
   logger,
-} from '@stock-tracker/shared/utils';
+} from '../../../shared/dist/utils';
 
 // ============= Cache Configuration =============
 // TTL: 5 minutes for trade data, check every 60 seconds
@@ -165,12 +165,14 @@ export class TradeService {
     userId: string,
     options: TradeQueryOptions = {}
   ): Promise<PaginatedResult<TradeDocument>> {
+    console.log('📊 [TRADE-SERVICE] getUserTrades called for userId:', userId);
     const page = options.page || 1;
     const limit = Math.min(options.limit || 20, 100);
     const skip = (page - 1) * limit;
     
     // Build query
     const query: any = { userId: new Types.ObjectId(userId), isDeleted: false };
+    console.log('📊 [TRADE-SERVICE] MongoDB query:', JSON.stringify(query));
     
     // Status filter
     if (options.status) {
@@ -270,12 +272,13 @@ export class TradeService {
       }
     }
     
-    // Search filter
+    // Search filter - escape regex special characters to prevent ReDoS
     if (options.search) {
+      const escapedSearch = options.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { symbol: { $regex: options.search, $options: 'i' } },
-        { strategy: { $regex: options.search, $options: 'i' } },
-        { notes: { $regex: options.search, $options: 'i' } },
+        { symbol: { $regex: escapedSearch, $options: 'i' } },
+        { strategy: { $regex: escapedSearch, $options: 'i' } },
+        { notes: { $regex: escapedSearch, $options: 'i' } },
       ];
     }
     
@@ -326,18 +329,21 @@ export class TradeService {
       const updateKeys = Object.keys(dto);
       const hasDisallowedFields = updateKeys.some(key => !allowedFields.includes(key));
       
+      // Cast dto to any for flexible field access (frontend may send additional fields)
+      const dtoAny = dto as any;
+      
       if (hasDisallowedFields) {
         const disallowedFields = updateKeys.filter(key => !allowedFields.includes(key));
         console.log('⚠️ Ignoring disallowed fields for closed trade:', disallowedFields);
-        disallowedFields.forEach(field => delete dto[field]);
+        disallowedFields.forEach(field => delete dtoAny[field]);
       }
       
       // For closed trades, use direct DB update to avoid validation issues
       const updateFields: any = {};
       
-      if (dto.exitPrice !== undefined && trade.exit) {
-        updateFields['exit.price'] = dto.exitPrice;
-        trade.exit.price = dto.exitPrice;
+      if (dtoAny.exitPrice !== undefined && trade.exit) {
+        updateFields['exit.price'] = dtoAny.exitPrice;
+        trade.exit.price = dtoAny.exitPrice;
         const calculatedPnL = trade.calculatePnL();
         updateFields['pnl.gross'] = calculatedPnL.gross || 0;
       }
@@ -347,13 +353,13 @@ export class TradeService {
       if (dto.tags) updateFields.tags = dto.tags;
       
       // Handle date updates
-      if (dto.entryTimestamp || dto.entryDate) {
-        const entryDate = dto.entryTimestamp || dto.entryDate;
+      if (dto.entryTimestamp || dtoAny.entryDate) {
+        const entryDate = dto.entryTimestamp || dtoAny.entryDate;
         updateFields['entry.timestamp'] = new Date(entryDate);
       }
       
-      if (dto.exitTimestamp || dto.exitTime) {
-        const exitDate = dto.exitTimestamp || dto.exitTime;
+      if (dtoAny.exitTimestamp || dtoAny.exitTime) {
+        const exitDate = dtoAny.exitTimestamp || dtoAny.exitTime;
         if (trade.exit) {
           updateFields['exit.timestamp'] = new Date(exitDate);
         }
@@ -396,7 +402,8 @@ export class TradeService {
     await trade.save();
     
     // For closed trades with updated exit price, recalculate PnL
-    if (trade.status === 'closed' && dto.exitPrice !== undefined && trade.exit) {
+    const dtoAnyForPnL = dto as any;
+    if (trade.status === 'closed' && dtoAnyForPnL.exitPrice !== undefined && trade.exit) {
       const calculatedPnL = trade.calculatePnL();
       console.log('🔧 Recalculating PnL after exit price update:', calculatedPnL);
       
@@ -970,7 +977,7 @@ export class TradeService {
       userId: new Types.ObjectId(userId), 
       isDeleted: false,
       status: 'closed',
-      mistake: { $exists: true, $ne: null, $ne: '' },
+      mistake: { $exists: true, $nin: [null, ''] },
     };
     
     if (dateRange) {

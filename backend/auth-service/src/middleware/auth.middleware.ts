@@ -4,8 +4,8 @@
 
 import { Response, NextFunction } from 'express';
 import { authService } from '../services';
-import { AuthenticatedRequest, UserRole } from '@stock-tracker/shared/types';
-import { logger } from '@stock-tracker/shared/utils';
+import { AuthenticatedRequest, UserRole } from '../../../shared/dist/types';
+import { logger } from '../../../shared/dist/utils';
 
 // ============= Authenticate =============
 

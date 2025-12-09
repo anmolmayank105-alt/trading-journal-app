@@ -3,8 +3,8 @@
  */
 
 import { UserModel, UserDocument } from '../models';
-import { UpdateUserDTO, UserResponseDTO } from '@stock-tracker/shared/types';
-import { NotFoundError, logger } from '@stock-tracker/shared/utils';
+import { UpdateUserDTO, UserResponseDTO } from '../../../shared/dist/types';
+import { NotFoundError, logger } from '../../../shared/dist/utils';
 
 export class UserService {
   

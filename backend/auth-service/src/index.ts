@@ -12,7 +12,7 @@ import morgan from 'morgan';
 import { connectDatabase } from './config/database';
 import { errorHandler, notFoundHandler } from './middleware';
 import { authRoutes, userRoutes } from './routes';
-import { logger } from '@stock-tracker/shared/utils';
+import { logger } from '../../shared/dist/utils';
 
 const app = express();
 const PORT = process.env.PORT || 3001;

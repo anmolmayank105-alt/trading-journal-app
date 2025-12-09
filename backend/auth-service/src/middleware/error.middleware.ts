@@ -3,7 +3,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ValidationError, logger } from '@stock-tracker/shared/utils';
+import { AppError, ValidationError, logger } from '../../../shared/dist/utils';
 
 export interface ErrorResponse {
   success: false;

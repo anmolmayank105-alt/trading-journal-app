@@ -8,8 +8,8 @@ import {
   UserPreferences,
   Subscription,
   DEFAULT_USER_PREFERENCES,
-} from '@stock-tracker/shared/types';
-import { hashPassword, verifyPassword } from '@stock-tracker/shared/utils';
+} from '../../../shared/dist/types';
+import { hashPassword, verifyPassword } from '../../../shared/dist/utils';
 
 // ============= User Document Interface =============
 

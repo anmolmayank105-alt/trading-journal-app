@@ -267,29 +267,17 @@ export async function logout(): Promise<void> {
   // Always clear local state
   clearTokens();
   currentUserCache = null;
+  
+  // Clear cached user data from localStorage
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('trading_app_current_user');
+  }
+  
   localAuth.logoutUser();
 }
 
 // Get current user
 export async function getCurrentUser(): Promise<User | null> {
-  // Return cached user if available
-  if (currentUserCache) {
-    return currentUserCache;
-  }
-  
-  // Check localStorage first (for quick access)
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('trading_app_current_user');
-      if (stored) {
-        currentUserCache = JSON.parse(stored);
-        return currentUserCache;
-      }
-    } catch {
-      // Ignore parse errors
-    }
-  }
-  
   // Only try backend if we have a token
   const token = getAccessToken();
   if (token && await isBackendAvailable()) {
@@ -307,9 +295,28 @@ export async function getCurrentUser(): Promise<User | null> {
     } catch {
       // Token might be invalid - clear it
       clearTokens();
+      currentUserCache = null;
       if (typeof window !== 'undefined') {
         localStorage.removeItem('trading_app_current_user');
       }
+    }
+  }
+  
+  // Return cached user if available (only if no token, meaning localStorage mode)
+  if (!token && currentUserCache) {
+    return currentUserCache;
+  }
+  
+  // Check localStorage only if no token (localStorage auth mode)
+  if (!token && typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('trading_app_current_user');
+      if (stored) {
+        currentUserCache = JSON.parse(stored);
+        return currentUserCache;
+      }
+    } catch {
+      // Ignore parse errors
     }
   }
   
