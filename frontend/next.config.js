@@ -23,6 +23,7 @@ const nextConfig = {
   // Environment variables with fallback
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
+    NEXT_PUBLIC_TRADE_API_URL: process.env.NEXT_PUBLIC_TRADE_API_URL || '',
   },
   
   // Webpack optimizations

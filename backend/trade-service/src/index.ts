@@ -17,15 +17,35 @@ import { errorHandler, notFoundHandler } from './middleware';
 import { logger } from '../../shared/dist/utils';
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 
 // Middleware
 app.use(helmet());
+
+// CORS configuration for production
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+  : ['http://localhost:3002', 'http://localhost:3000'];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' 
-    ? false 
-    : ['http://localhost:3002', 'http://localhost:3000']),
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.some(allowed => origin.startsWith(allowed) || allowed === '*')) {
+      return callback(null, true);
+    }
+    
+    // In development, allow all localhost
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Disable caching for all API responses
@@ -63,10 +83,22 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDatabase();
     
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       logger.info(`Trade Service running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info('Service ready to accept requests');
     });
+    
+    //Keep the process alive
+    server.on('close', () => {
+      logger.info('Server closed');
+    });
+    
+    // Prevent process from exiting
+    setInterval(() => {
+      // Keep alive
+    }, 1000 * 60 * 60); // Every hour
+    
   } catch (error) {
     logger.error({ error }, 'Failed to start Trade Service');
     process.exit(1);
@@ -75,13 +107,14 @@ const startServer = async () => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error({ reason, promise }, 'Unhandled Rejection');
+  logger.error({ reason, promise }, 'Unhandled Rejection - Keeping process alive for debugging');
+  // Don't exit - let's see what's happening
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  logger.error({ error }, 'Uncaught Exception');
-  process.exit(1);
+  logger.error({ error }, 'Uncaught Exception - Keeping process alive for debugging');
+  // Don't exit immediately
 });
 
 // Graceful shutdown

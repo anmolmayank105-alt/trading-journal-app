@@ -47,6 +47,26 @@ const ChartsWrapper = dynamic<ChartsProps>(
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
+// List of known index names
+const INDEX_NAMES = ['BANKNIFTY', 'NIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'];
+
+// Helper function to extract base index from symbol with strike price
+// e.g., "BANKNIFTY 57800 CE" -> "BANKNIFTY", "NIFTY 25700 CE" -> "NIFTY"
+function getBaseIndex(symbol: string): string | null {
+  const upperSymbol = symbol.toUpperCase();
+  for (const index of INDEX_NAMES) {
+    if (upperSymbol.startsWith(index)) {
+      return index;
+    }
+  }
+  return null;
+}
+
+// Helper function to check if a symbol is an index option
+function isIndexSymbol(symbol: string): boolean {
+  return getBaseIndex(symbol) !== null;
+}
+
 const StatCard = React.memo(({ 
   icon: Icon, 
   label, 
@@ -190,6 +210,33 @@ export default function AnalyticsPage() {
       avgLoss: losingTrades.length > 0 ? totalLosses / losingTrades.length : 0,
     };
   }, [filteredTrades]);
+
+  // Aggregate index performance by base index name (BANKNIFTY, NIFTY, etc.)
+  // This combines all options like "BANKNIFTY 57800 CE", "BANKNIFTY 58400 PE" into just "BANKNIFTY"
+  const aggregatedIndexAnalysis = useMemo(() => {
+    const indexMap = new Map<string, { trades: number; pnl: number; wins: number }>();
+    
+    symbolAnalysis.forEach(item => {
+      const baseIndex = getBaseIndex(item.symbol);
+      if (baseIndex) {
+        const existing = indexMap.get(baseIndex) || { trades: 0, pnl: 0, wins: 0 };
+        existing.trades += item.trades;
+        existing.pnl += item.pnl;
+        // Calculate wins based on win rate and trades
+        existing.wins += Math.round((item.winRate / 100) * item.trades);
+        indexMap.set(baseIndex, existing);
+      }
+    });
+    
+    return Array.from(indexMap.entries())
+      .map(([index, data]) => ({
+        symbol: index,
+        trades: data.trades,
+        pnl: data.pnl,
+        winRate: data.trades > 0 ? (data.wins / data.trades) * 100 : 0,
+      }))
+      .sort((a, b) => b.pnl - a.pnl);
+  }, [symbolAnalysis]);
 
   // Format P&L curve data with timeframe filter
   const chartData = useMemo(() => {
@@ -437,7 +484,7 @@ export default function AnalyticsPage() {
             {/* Top Performing Symbols */}
             <div className="bg-white/5 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-white mb-4">🏆 Top Performing Symbols</h3>
-            {symbolAnalysis.filter(s => s.pnl > 0 && !['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'].some(idx => s.symbol.toUpperCase().includes(idx))).length > 0 ? (
+            {symbolAnalysis.filter(s => s.pnl > 0 && !isIndexSymbol(s.symbol)).length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -450,7 +497,7 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody>
                     {symbolAnalysis
-                      .filter(s => s.pnl > 0 && !['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'].some(idx => s.symbol.toUpperCase().includes(idx)))
+                      .filter(s => s.pnl > 0 && !isIndexSymbol(s.symbol))
                       .slice(0, 5)
                       .map((symbol, index) => (
                         <tr 
@@ -493,7 +540,7 @@ export default function AnalyticsPage() {
           {/* Top Performing Indices */}
           <div className="bg-white/5 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-white mb-4">📈 Top Performing Indices</h3>
-            {symbolAnalysis.filter(s => s.pnl > 0 && ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'].some(idx => s.symbol.toUpperCase().includes(idx))).length > 0 ? (
+            {aggregatedIndexAnalysis.filter(s => s.pnl > 0).length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -505,8 +552,8 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {symbolAnalysis
-                      .filter(s => s.pnl > 0 && ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'].some(idx => s.symbol.toUpperCase().includes(idx)))
+                    {aggregatedIndexAnalysis
+                      .filter(s => s.pnl > 0)
                       .slice(0, 5)
                       .map((symbol, index) => (
                         <tr 
@@ -551,7 +598,7 @@ export default function AnalyticsPage() {
           {/* Worst Performing Symbols */}
           <div className="bg-white/5 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-white mb-4">📉 Worst Performing Symbols</h3>
-            {symbolAnalysis.filter(s => s.pnl < 0 && !['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'].some(idx => s.symbol.toUpperCase().includes(idx))).length > 0 ? (
+            {symbolAnalysis.filter(s => s.pnl < 0 && !isIndexSymbol(s.symbol)).length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -564,7 +611,7 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody>
                     {symbolAnalysis
-                      .filter(s => s.pnl < 0 && !['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'].some(idx => s.symbol.toUpperCase().includes(idx)))
+                      .filter(s => s.pnl < 0 && !isIndexSymbol(s.symbol))
                       .sort((a, b) => a.pnl - b.pnl)
                       .slice(0, 5)
                       .map((symbol, index) => (
@@ -608,7 +655,7 @@ export default function AnalyticsPage() {
           {/* Worst Performing Indices */}
           <div className="bg-white/5 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-white mb-4">⚠️ Worst Performing Indices</h3>
-            {symbolAnalysis.filter(s => s.pnl < 0 && ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'].some(idx => s.symbol.toUpperCase().includes(idx))).length > 0 ? (
+            {aggregatedIndexAnalysis.filter(s => s.pnl < 0).length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -620,8 +667,8 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {symbolAnalysis
-                      .filter(s => s.pnl < 0 && ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'].some(idx => s.symbol.toUpperCase().includes(idx)))
+                    {aggregatedIndexAnalysis
+                      .filter(s => s.pnl < 0)
                       .sort((a, b) => a.pnl - b.pnl)
                       .slice(0, 5)
                       .map((symbol, index) => (

@@ -1,9 +1,25 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { ChevronDown, X, Search } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { searchStocks, UNIQUE_INDIAN_STOCKS, StockInfo } from '@/data/indianStocks';
+
+// Sector colors - defined outside component to prevent recreation
+const SECTOR_COLORS: Record<string, string> = {
+  'Banking': 'bg-blue-500/20 text-blue-400',
+  'IT': 'bg-purple-500/20 text-purple-400',
+  'Pharma': 'bg-green-500/20 text-green-400',
+  'Oil & Gas': 'bg-orange-500/20 text-orange-400',
+  'Auto': 'bg-red-500/20 text-red-400',
+  'FMCG': 'bg-yellow-500/20 text-yellow-400',
+  'Metals': 'bg-slate-500/20 text-slate-400',
+  'Power': 'bg-cyan-500/20 text-cyan-400',
+  'Infrastructure': 'bg-amber-500/20 text-amber-400',
+  'Telecom': 'bg-pink-500/20 text-pink-400',
+  'Insurance': 'bg-teal-500/20 text-teal-400',
+  'NBFC': 'bg-indigo-500/20 text-indigo-400',
+};
 
 interface SymbolInputProps {
   value: string;
@@ -12,7 +28,7 @@ interface SymbolInputProps {
   className?: string;
 }
 
-export default function SymbolInput({ 
+const SymbolInput = memo(function SymbolInput({ 
   value, 
   onChange, 
   placeholder = 'Search by name or symbol...',
@@ -57,50 +73,36 @@ export default function SymbolInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value.toUpperCase();
     setInputValue(newValue);
     onChange(newValue, 'NSE');
     if (!isOpen) setIsOpen(true);
-  };
+  }, [onChange, isOpen]);
 
-  const handleSelectStock = (stock: StockInfo) => {
+  const handleSelectStock = useCallback((stock: StockInfo) => {
     setInputValue(stock.symbol);
     onChange(stock.symbol, stock.exchange === 'BOTH' ? 'NSE' : stock.exchange);
     setIsOpen(false);
     inputRef.current?.blur();
-  };
+  }, [onChange]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setInputValue('');
     onChange('', 'NSE');
     inputRef.current?.focus();
-  };
+  }, [onChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setIsOpen(false);
     }
-  };
+  }, []);
 
-  // Get sector color
-  const getSectorColor = (sector: string) => {
-    const colors: Record<string, string> = {
-      'Banking': 'bg-blue-500/20 text-blue-400',
-      'IT': 'bg-purple-500/20 text-purple-400',
-      'Pharma': 'bg-green-500/20 text-green-400',
-      'Oil & Gas': 'bg-orange-500/20 text-orange-400',
-      'Auto': 'bg-red-500/20 text-red-400',
-      'FMCG': 'bg-yellow-500/20 text-yellow-400',
-      'Metals': 'bg-slate-500/20 text-slate-400',
-      'Power': 'bg-cyan-500/20 text-cyan-400',
-      'Infrastructure': 'bg-amber-500/20 text-amber-400',
-      'Telecom': 'bg-pink-500/20 text-pink-400',
-      'Insurance': 'bg-teal-500/20 text-teal-400',
-      'NBFC': 'bg-indigo-500/20 text-indigo-400',
-    };
-    return colors[sector] || 'bg-slate-500/20 text-slate-400';
-  };
+  // Get sector color - use static object
+  const getSectorColor = useCallback((sector: string) => {
+    return SECTOR_COLORS[sector] || 'bg-slate-500/20 text-slate-400';
+  }, []);
 
   return (
     <div className={`relative ${className}`}>
@@ -213,4 +215,8 @@ export default function SymbolInput({
       )}
     </div>
   );
-}
+});
+
+SymbolInput.displayName = 'SymbolInput';
+
+export default SymbolInput;

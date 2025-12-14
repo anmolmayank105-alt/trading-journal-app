@@ -98,11 +98,49 @@ const CumulativePnLChart = React.memo(({ data }: { data: ChartData[] }) => {
   const maxPnl = Math.max(...allPnlValues, 0);
   const minPnl = Math.min(...allPnlValues, 0);
   const range = Math.max(Math.abs(maxPnl), Math.abs(minPnl));
-  const padding = range * 0.25; // 25% padding
+  const padding = range * 0.3; // 30% padding for better visual spacing
+  
+  // Round domain to nice numbers to avoid decimal ticks
+  const roundToNice = (value: number, up: boolean) => {
+    if (value === 0) return 0;
+    const absVal = Math.abs(value);
+    const sign = value < 0 ? -1 : 1;
+    
+    const magnitude = Math.pow(10, Math.floor(Math.log10(absVal)));
+    const normalized = absVal / magnitude;
+    
+    let niceValue: number;
+    if (up) {
+      if (normalized <= 1) niceValue = 1;
+      else if (normalized <= 2) niceValue = 2;
+      else if (normalized <= 5) niceValue = 5;
+      else niceValue = 10;
+    } else {
+      if (normalized < 1) niceValue = 1;
+      else if (normalized < 2) niceValue = 1;
+      else if (normalized < 5) niceValue = 2;
+      else niceValue = 5;
+    }
+    
+    return sign * niceValue * magnitude;
+  };
+  
   const yAxisDomain = [
-    minPnl < 0 ? minPnl - padding : -padding * 0.1,
-    maxPnl > 0 ? maxPnl + padding : padding * 0.1
+    minPnl < 0 ? roundToNice(minPnl - padding, false) : roundToNice(-padding * 0.1, false),
+    maxPnl > 0 ? roundToNice(maxPnl + padding, true) : roundToNice(padding * 0.1, true)
   ];
+
+  // Format Y-axis values nicely (no decimals)
+  const formatYAxisTick = (value: number) => {
+    const absValue = Math.abs(value);
+    if (absValue >= 100000) {
+      return `₹${(value / 100000).toFixed(1)}L`;
+    } else if (absValue >= 1000) {
+      return `₹${(value / 1000).toFixed(0)}k`;
+    } else {
+      return `₹${Math.round(value)}`;
+    }
+  };
 
   return (
     <div className="h-72">
@@ -137,10 +175,11 @@ const CumulativePnLChart = React.memo(({ data }: { data: ChartData[] }) => {
             fontSize={10} 
             tickLine={false}
             axisLine={{ stroke: '#334155' }}
-            tickFormatter={(v) => `₹${Math.abs(v) >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} 
+            tickFormatter={formatYAxisTick}
+            tickCount={5}
           />
           <ReferenceLine y={0} stroke="#475569" strokeWidth={1} />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={false} />
           <Bar 
             dataKey="pnl" 
             radius={[2, 2, 0, 0]}
@@ -202,6 +241,7 @@ const WinLossChart = React.memo(({ data }: { data: WinLossData[] }) => {
             contentStyle={tooltipStyle}
             itemStyle={{ color: '#ffffff' }}
             labelStyle={{ color: '#ffffff' }}
+            cursor={false}
           />
           <Legend 
             wrapperStyle={{ color: '#ffffff' }}
@@ -246,6 +286,7 @@ const WeeklyPnLChart = React.memo(({ data }: { data: WeeklyPnLData[] }) => {
             formatter={(value: number) => [`₹${value.toLocaleString()}`, 'P&L']}
             labelStyle={{ color: '#ffffff' }}
             itemStyle={{ color: '#ffffff' }}
+            cursor={false}
           />
           <Bar 
             dataKey="pnl" 
@@ -295,6 +336,7 @@ const MonthlyPnLChart = React.memo(({ data }: { data: MonthlyData[] }) => {
           formatter={(value: number) => [`₹${value.toLocaleString()}`, 'P&L']}
           labelStyle={{ color: '#ffffff' }}
           itemStyle={{ color: '#ffffff' }}
+          cursor={false}
         />
         <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
           {data.map((entry, index) => (
@@ -344,6 +386,7 @@ const SegmentChart = React.memo(({ data }: { data: SegmentData[] }) => {
           contentStyle={tooltipStyle}
           itemStyle={{ color: '#ffffff' }}
           labelStyle={{ color: '#ffffff' }}
+          cursor={false}
         />
       </PieChart>
     </ResponsiveContainer>

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { ChevronDown, Check, Plus, Search, X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
-// 20 common trading mistakes
+// 20 common trading mistakes (shared across all users)
 const DEFAULT_MISTAKES = [
   'No Stop Loss',
   'Moved Stop Loss',
@@ -28,28 +28,96 @@ const DEFAULT_MISTAKES = [
   'Holding Overnight Unplanned',
 ];
 
-// Get saved custom mistakes from localStorage
+// Get current user ID from localStorage
+const getCurrentUserId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.id || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+// Get user-specific storage key for custom mistakes
+const getStorageKey = (): string => {
+  const userId = getCurrentUserId();
+  return userId ? `customMistakes_${userId}` : 'customMistakes_guest';
+};
+
+// Get saved custom mistakes from localStorage (user-specific)
 const getCustomMistakes = (): string[] => {
   if (typeof window === 'undefined') return [];
   try {
-    const saved = localStorage.getItem('customMistakes');
+    const key = getStorageKey();
+    const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
   }
 };
 
-// Save custom mistake to localStorage
+// Save custom mistake to localStorage (user-specific)
 const saveCustomMistake = (mistake: string) => {
   if (typeof window === 'undefined') return;
   try {
+    const key = getStorageKey();
     const existing = getCustomMistakes();
     if (!existing.includes(mistake) && !DEFAULT_MISTAKES.includes(mistake)) {
       const updated = [...existing, mistake];
-      localStorage.setItem('customMistakes', JSON.stringify(updated));
+      localStorage.setItem(key, JSON.stringify(updated));
     }
   } catch {
     // Ignore storage errors
+  }
+};
+
+// Remove custom mistake from localStorage (user-specific)
+const removeCustomMistake = (mistake: string): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const key = getStorageKey();
+    const existing = getCustomMistakes();
+    const updated = existing.filter(m => m !== mistake);
+    localStorage.setItem(key, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+};
+
+// Get hidden/removed default mistakes (user-specific)
+const getRemovedDefaultMistakes = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const userId = getCurrentUserId();
+    const key = `removedDefaultMistakes_${userId}`;
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
+// Hide/remove a default mistake (user-specific)
+const addRemovedDefaultMistake = (mistake: string): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const userId = getCurrentUserId();
+    const key = `removedDefaultMistakes_${userId}`;
+    const existing = getRemovedDefaultMistakes();
+    if (!existing.includes(mistake) && DEFAULT_MISTAKES.includes(mistake)) {
+      const updated = [...existing, mistake];
+      localStorage.setItem(key, JSON.stringify(updated));
+      return updated;
+    }
+    return existing;
+  } catch {
+    return [];
   }
 };
 
@@ -60,7 +128,7 @@ interface MistakeInputProps {
   className?: string;
 }
 
-export default function MistakeInput({ 
+const MistakeInput = memo(function MistakeInput({ 
   value, 
   onChange, 
   placeholder = 'Select or describe mistake...',
@@ -72,12 +140,14 @@ export default function MistakeInput({
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
   const [customMistakes, setCustomMistakes] = useState<string[]>([]);
+  const [removedDefaultMistakes, setRemovedDefaultMistakes] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load custom mistakes on mount
+  // Load custom and removed mistakes on mount
   useEffect(() => {
     setCustomMistakes(getCustomMistakes());
+    setRemovedDefaultMistakes(getRemovedDefaultMistakes());
   }, []);
 
   // Sync input value with prop
@@ -85,10 +155,11 @@ export default function MistakeInput({
     setInputValue(value);
   }, [value]);
 
-  // All available mistakes
+  // All available mistakes (filter out removed defaults)
   const allMistakes = useMemo(() => {
-    return [...DEFAULT_MISTAKES, ...customMistakes];
-  }, [customMistakes]);
+    const availableDefaults = DEFAULT_MISTAKES.filter(m => !removedDefaultMistakes.includes(m));
+    return [...availableDefaults, ...customMistakes];
+  }, [customMistakes, removedDefaultMistakes]);
 
   // Filtered mistakes based on input
   const filteredMistakes = useMemo(() => {
@@ -122,43 +193,69 @@ export default function MistakeInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
     onChange(newValue);
     if (!isOpen) setIsOpen(true);
-  };
+  }, [onChange, isOpen]);
 
-  const handleSelectMistake = (mistake: string) => {
+  const handleSelectMistake = useCallback((mistake: string) => {
     setInputValue(mistake);
     onChange(mistake);
     setIsOpen(false);
     inputRef.current?.blur();
-  };
+  }, [onChange]);
 
-  const handleAddNewMistake = () => {
+  const handleAddNewMistake = useCallback(() => {
     const trimmed = inputValue.trim();
     if (trimmed) {
       saveCustomMistake(trimmed);
       setCustomMistakes(prev => [...prev, trimmed]);
-      handleSelectMistake(trimmed);
+      setInputValue(trimmed);
+      onChange(trimmed);
+      setIsOpen(false);
+      inputRef.current?.blur();
     }
-  };
+  }, [inputValue, onChange]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setInputValue('');
     onChange('');
     inputRef.current?.focus();
-  };
+  }, [onChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && showAddNew) {
       e.preventDefault();
       handleAddNewMistake();
     } else if (e.key === 'Escape') {
       setIsOpen(false);
     }
-  };
+  }, [showAddNew, handleAddNewMistake]);
+
+  // Handle delete mistake (both custom and default)
+  const handleDeleteMistake = useCallback((mistake: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent selecting when deleting
+    
+    const isCustom = customMistakes.includes(mistake);
+    
+    if (isCustom) {
+      // Remove custom mistake
+      const updated = removeCustomMistake(mistake);
+      setCustomMistakes(updated);
+    } else {
+      // Hide default mistake
+      const updated = addRemovedDefaultMistake(mistake);
+      setRemovedDefaultMistakes(updated);
+    }
+    
+    // Clear selection if deleted mistake was selected
+    if (value === mistake) {
+      setInputValue('');
+      onChange('');
+    }
+  }, [value, onChange, customMistakes]);
 
   return (
     <div className={`relative ${className}`}>
@@ -217,24 +314,41 @@ export default function MistakeInput({
           {/* Mistakes list */}
           <div className="max-h-60 overflow-y-auto">
             {filteredMistakes.length > 0 ? (
-              filteredMistakes.map((mistake) => (
-                <button
-                  key={mistake}
-                  type="button"
-                  onClick={() => handleSelectMistake(mistake)}
-                  className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors ${
-                    isDark 
-                      ? 'hover:bg-white/5 text-slate-200' 
-                      : 'hover:bg-slate-50 text-slate-700'
-                  } ${value === mistake ? (isDark ? 'bg-red-600/20 text-red-400' : 'bg-red-50 text-red-600') : ''}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span>⚠️</span>
-                    <span>{mistake}</span>
-                  </span>
-                  {value === mistake && <Check className="w-4 h-4" />}
-                </button>
-              ))
+              filteredMistakes.map((mistake) => {
+                const isSelected = value === mistake;
+                return (
+                  <button
+                    key={mistake}
+                    type="button"
+                    onClick={() => handleSelectMistake(mistake)}
+                    className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors group ${
+                      isDark 
+                        ? 'hover:bg-white/5 text-slate-200' 
+                        : 'hover:bg-slate-50 text-slate-700'
+                    } ${isSelected ? (isDark ? 'bg-red-600/20 text-red-400' : 'bg-red-50 text-red-600') : ''}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>⚠️</span>
+                      <span>{mistake}</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {isSelected && <Check className="w-4 h-4" />}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteMistake(mistake, e)}
+                        className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                          isDark 
+                            ? 'hover:bg-red-600/30 text-red-400 hover:text-red-300' 
+                            : 'hover:bg-red-100 text-red-500 hover:text-red-600'
+                        }`}
+                        title="Remove mistake"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </button>
+                );
+              })
             ) : (
               !showAddNew && (
                 <div className={`px-4 py-8 text-center ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -270,4 +384,8 @@ export default function MistakeInput({
       )}
     </div>
   );
-}
+});
+
+MistakeInput.displayName = 'MistakeInput';
+
+export default MistakeInput;

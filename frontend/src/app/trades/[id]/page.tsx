@@ -11,6 +11,7 @@ import TimeFrameInput from '@/components/TimeFrameInput';
 import MistakeInput from '@/components/MistakeInput';
 import { getTradeById, updateTrade, deleteTrade } from '@/lib/api/trades';
 import { Trade } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   ArrowLeft,
   TrendingUp,
@@ -573,6 +574,8 @@ const EditTradeModal = ({
 export default function TradeDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const [trade, setTrade] = useState<Trade | null>(null);
   const [mounted, setMounted] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -833,7 +836,9 @@ export default function TradeDetailPage() {
                   {trade.status.toUpperCase()}
                 </span>
               </div>
-              <p className="text-slate-400 mt-1">{trade.exchange} • {trade.segment}</p>
+              <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>
+                {trade.exchange} • <span className={`font-semibold uppercase ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>{trade.segment}</span>
+              </p>
             </div>
           </div>
           <div className="flex gap-3">

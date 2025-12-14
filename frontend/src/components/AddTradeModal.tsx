@@ -28,7 +28,9 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
   const [instrumentType, setInstrumentType] = useState<'symbol' | 'index'>('symbol');
   const [selectedIndex, setSelectedIndex] = useState(''); // Store base index like "NIFTY"
   const [strikePrice, setStrikePrice] = useState(''); // Store strike/level like "25000"
+  const [stockStrikePrice, setStockStrikePrice] = useState(''); // Strike price for stock options
   const [optionType, setOptionType] = useState<'CE' | 'PE' | ''>(''); // Call or Put option
+  const [baseSymbol, setBaseSymbol] = useState(''); // Store base symbol for stock options
   const [formData, setFormData] = useState({
     symbol: '',
     exchange: 'NSE',
@@ -104,22 +106,38 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
 
   useEffect(() => {
     if (editTrade) {
-      const indexSymbols = ['NIFTY', 'SENSEX', 'BANKNIFTY', 'SPX', 'DJI', 'IXIC', 'FTSE', 'DAX', 'N225', 'HSI'];
+      const indexSymbols = ['NIFTY', 'SENSEX', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SPX', 'DJI', 'IXIC', 'FTSE', 'DAX', 'N225', 'HSI'];
       const isIndex = indexSymbols.some(idx => editTrade.symbol.toUpperCase().includes(idx));
       setInstrumentType(isIndex ? 'index' : 'symbol');
       
-      // Extract base index, strike price, and option type if it's an index
+      // Extract base symbol/index, strike price, and option type
+      const symbolMatch = editTrade.symbol.match(/^([A-Z]+)\s*(\d+)?\s*(CE|PE)?$/i);
+      
       if (isIndex) {
-        const match = editTrade.symbol.match(/^([A-Z]+)\s*(\d+)?\s*(CE|PE)?$/i);
-        if (match) {
-          setSelectedIndex(match[1]);
-          setStrikePrice(match[2] || '');
-          setOptionType((match[3]?.toUpperCase() as 'CE' | 'PE') || '');
+        if (symbolMatch) {
+          setSelectedIndex(symbolMatch[1]);
+          setStrikePrice(symbolMatch[2] || '');
+          setOptionType((symbolMatch[3]?.toUpperCase() as 'CE' | 'PE') || '');
         } else {
           setSelectedIndex(editTrade.symbol);
           setStrikePrice('');
           setOptionType('');
         }
+        setBaseSymbol('');
+        setStockStrikePrice('');
+      } else {
+        // For stock symbols, extract base symbol and option details if present
+        if (editTrade.segment === 'options' && symbolMatch) {
+          setBaseSymbol(symbolMatch[1]);
+          setStockStrikePrice(symbolMatch[2] || '');
+          setOptionType((symbolMatch[3]?.toUpperCase() as 'CE' | 'PE') || '');
+        } else {
+          setBaseSymbol(editTrade.symbol);
+          setStockStrikePrice('');
+          setOptionType('');
+        }
+        setSelectedIndex('');
+        setStrikePrice('');
       }
       
       // Helper to safely extract date from ISO string
@@ -159,6 +177,8 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
       setInstrumentType('symbol');
       setSelectedIndex('');
       setStrikePrice('');
+      setStockStrikePrice('');
+      setBaseSymbol('');
       setOptionType('');
       setFormData({
         symbol: '',
@@ -198,38 +218,52 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
         const wasOpen = editTrade.status === 'open';
         const isClosed = editTrade.status === 'closed';
         
-        // Update trade details FIRST (before closing it)
+        // Build update data with ALL fields - allow editing everything for both open and closed trades
         const updateData: any = {
+          // Core trade details
+          symbol: formData.symbol.toUpperCase(),
+          exchange: formData.exchange,
+          segment: formData.segment,
+          tradeType: formData.tradeType,
+          quantity: parseInt(formData.quantity),
+          entryPrice: parseFloat(formData.entryPrice),
+          
+          // Stop loss and target
+          stopLoss: formData.stopLoss ? parseFloat(formData.stopLoss) : undefined,
+          target: formData.target ? parseFloat(formData.target) : undefined,
+          
+          // Time frame
+          timeFrame: formData.timeFrame || undefined,
+          
+          // Dates
+          entryDate: formData.entryDate,
+          entryTimestamp: new Date(formData.entryDate).toISOString(),
+          
+          // Analysis fields
           strategy: formData.strategy || undefined,
+          psychology: formData.psychology || undefined,
+          mistake: formData.mistake || undefined,
           notes: formData.notes || undefined,
           tags: [],
+          
+          // Brokerage
+          brokerage: parseFloat(formData.brokerage) || 0,
         };
         
-        // For closed trades, allow updating exit price and dates
-        if (isClosed) {
+        // Include calculated risk reward ratio
+        if (calculations.riskReward > 0) {
+          updateData.riskRewardRatio = calculations.riskReward;
+        }
+        
+        // For closed trades, also include exit details
+        if (isClosed || hasExitPrice) {
           if (formData.exitPrice && parseFloat(formData.exitPrice) > 0) {
             updateData.exitPrice = parseFloat(formData.exitPrice);
           }
-          if (formData.entryDate) {
-            updateData.entryDate = formData.entryDate;
-          }
           if (formData.exitDate) {
-            updateData.exitTime = formData.exitDate;
+            updateData.exitDate = formData.exitDate;
+            updateData.exitTimestamp = new Date(formData.exitDate).toISOString();
           }
-        }
-        
-        // For open trades, allow updating all fields
-        if (!isClosed) {
-          updateData.symbol = formData.symbol.toUpperCase();
-          updateData.exchange = formData.exchange;
-          updateData.segment = formData.segment;
-          updateData.tradeType = formData.tradeType;
-          updateData.quantity = parseInt(formData.quantity);
-          updateData.entryPrice = parseFloat(formData.entryPrice);
-          updateData.stopLoss = formData.stopLoss ? parseFloat(formData.stopLoss) : undefined;
-          updateData.target = formData.target ? parseFloat(formData.target) : undefined;
-          updateData.entryTimestamp = new Date(formData.entryDate).toISOString();
-          updateData.brokerage = parseFloat(formData.exitBrokerage) || 0;
         }
         
         const result = await updateTrade(editTrade.id, updateData);
@@ -266,6 +300,8 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
           entryTimestamp: new Date(formData.entryDate).toISOString(),
           status: 'open' as const,
           strategy: formData.strategy || undefined,
+          psychology: formData.psychology || undefined,
+          mistake: formData.mistake || undefined,
           notes: formData.notes || undefined,
           tags: [],
           brokerage: parseFloat(formData.brokerage) || 0,
@@ -347,7 +383,9 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
                   type="button"
                   onClick={() => {
                     setInstrumentType('index');
-                    setFormData({ ...formData, symbol: '', exchange: 'NSE' });
+                    // Reset segment to 'futures' since 'equity' is not available for index
+                    const newSegment = formData.segment === 'equity' ? 'futures' : formData.segment;
+                    setFormData({ ...formData, symbol: '', exchange: 'NSE', segment: newSegment });
                   }}
                   className={`flex-1 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
                     instrumentType === 'index'
@@ -366,18 +404,98 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
                 {instrumentType === 'symbol' ? 'Symbol *' : 'Index *'}
               </label>
               {instrumentType === 'symbol' ? (
-                <SymbolInput
-                  value={formData.symbol}
-                  onChange={(symbol, exchange) => setFormData({ ...formData, symbol, exchange })}
-                  placeholder="Search by name or symbol..."
-                />
+                <div className="space-y-3">
+                  <SymbolInput
+                    value={baseSymbol || formData.symbol}
+                    onChange={(symbol, exchange) => {
+                      setBaseSymbol(symbol);
+                      // If options segment, combine with strike and option type
+                      if (formData.segment === 'options') {
+                        const parts = [symbol, stockStrikePrice, optionType].filter(Boolean);
+                        const fullSymbol = parts.join(' ');
+                        setFormData({ ...formData, symbol: fullSymbol, exchange });
+                      } else {
+                        setFormData({ ...formData, symbol, exchange });
+                      }
+                    }}
+                    placeholder="Search by name or symbol..."
+                  />
+                  {/* Show strike price and CE/PE buttons for stock options */}
+                  {formData.segment === 'options' && baseSymbol && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                          Strike Price
+                          <span className="text-xs text-slate-500 font-normal ml-2">
+                            (e.g., 500, 1000)
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          value={stockStrikePrice}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                            setStockStrikePrice(value);
+                            // Update full symbol
+                            const parts = [baseSymbol, value, optionType].filter(Boolean);
+                            const fullSymbol = parts.join(' ');
+                            setFormData(prev => ({ ...prev, symbol: fullSymbol }));
+                          }}
+                          placeholder="Enter strike price"
+                          className="input"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                          Option Type
+                        </label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newType = optionType === 'CE' ? '' : 'CE';
+                              setOptionType(newType);
+                              const parts = [baseSymbol, stockStrikePrice, newType].filter(Boolean);
+                              const fullSymbol = parts.join(' ');
+                              setFormData(prev => ({ ...prev, symbol: fullSymbol }));
+                            }}
+                            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                              optionType === 'CE'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                            }`}
+                          >
+                            CE
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newType = optionType === 'PE' ? '' : 'PE';
+                              setOptionType(newType);
+                              const parts = [baseSymbol, stockStrikePrice, newType].filter(Boolean);
+                              const fullSymbol = parts.join(' ');
+                              setFormData(prev => ({ ...prev, symbol: fullSymbol }));
+                            }}
+                            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                              optionType === 'PE'
+                                ? 'bg-red-600 text-white'
+                                : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                            }`}
+                          >
+                            PE
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-3">
                   <IndexInput
                     value={selectedIndex}
                     onChange={(symbol, exchange) => {
                       setSelectedIndex(symbol);
-                      setFormData({ ...formData, exchange });
                       // Combine index + strike price + option type
                       const parts = [symbol, strikePrice, optionType].filter(Boolean);
                       const fullSymbol = parts.join(' ');
@@ -478,10 +596,25 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
               <label className="block text-sm font-medium text-slate-300 mb-2">Segment</label>
               <select
                 value={formData.segment}
-                onChange={(e) => setFormData({ ...formData, segment: e.target.value as typeof formData.segment })}
+                onChange={(e) => {
+                  const newSegment = e.target.value as typeof formData.segment;
+                  // Reset option-related fields when changing segment
+                  if (newSegment !== 'options') {
+                    setStockStrikePrice('');
+                    setOptionType('');
+                    // Reset symbol to base symbol if stock options were selected
+                    if (formData.segment === 'options' && baseSymbol) {
+                      setFormData({ ...formData, segment: newSegment, symbol: baseSymbol });
+                      return;
+                    }
+                  }
+                  setFormData({ ...formData, segment: newSegment });
+                }}
                 className="input"
               >
-                <option value="equity">Equity</option>
+                {instrumentType !== 'index' && (
+                  <option value="equity">Equity</option>
+                )}
                 <option value="futures">Futures</option>
                 <option value="options">Options</option>
               </select>
@@ -528,7 +661,6 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
                 placeholder="0"
                 required
                 min="1"
-                disabled={editTrade?.status === 'closed'}
               />
             </div>
 
@@ -538,7 +670,6 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
                 <span className="text-xs text-slate-500 font-normal ml-2">
                   {formData.tradeType === 'short' ? '(Price you sold at)' : '(Price you bought at)'}
                 </span>
-                {editTrade?.status === 'closed' && <span className="text-xs text-amber-500 ml-2">(Read-only)</span>}
               </label>
               <input
                 type="number"
@@ -548,7 +679,6 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
                 className="input"
                 placeholder="0.00"
                 required
-                disabled={editTrade?.status === 'closed'}
               />
             </div>
 
@@ -564,7 +694,6 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
                 onChange={(e) => setFormData({ ...formData, brokerage: e.target.value })}
                 className="input"
                 placeholder="0.00"
-                disabled={editTrade?.status === 'closed'}
               />
             </div>
 

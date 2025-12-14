@@ -122,6 +122,51 @@ function calculateWeeklyPnL(trades: Trade[]): { day: string; pnl: number }[] {
   }));
 }
 
+// Helper function to calculate day-wise win rate
+function calculateDayWiseWinRate(trades: Trade[]): { day: string; winRate: number; wins: number; losses: number; total: number }[] {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  
+  // Initialize data for each day
+  const dayStats: { [key: string]: { wins: number; losses: number; total: number } } = {
+    'Mon': { wins: 0, losses: 0, total: 0 },
+    'Tue': { wins: 0, losses: 0, total: 0 },
+    'Wed': { wins: 0, losses: 0, total: 0 },
+    'Thu': { wins: 0, losses: 0, total: 0 },
+    'Fri': { wins: 0, losses: 0, total: 0 },
+    'Sat': { wins: 0, losses: 0, total: 0 },
+    'Sun': { wins: 0, losses: 0, total: 0 },
+  };
+  
+  // Get only closed trades with exit date
+  const closedTrades = trades.filter(t => t.status === 'closed' && t.exitDate && t.pnl !== undefined);
+  
+  // Calculate wins/losses for each day
+  closedTrades.forEach(trade => {
+    const exitDate = parseTradeDate(trade.exitDate!.toString());
+    const dayOfWeek = exitDate.getDay();
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayName = dayNames[dayOfWeek];
+    
+    if (dayStats.hasOwnProperty(dayName)) {
+      dayStats[dayName].total++;
+      if (trade.pnl && trade.pnl > 0) {
+        dayStats[dayName].wins++;
+      } else {
+        dayStats[dayName].losses++;
+      }
+    }
+  });
+  
+  // Convert to array format with win rate
+  return days.map(day => ({
+    day,
+    winRate: dayStats[day].total > 0 ? (dayStats[day].wins / dayStats[day].total) * 100 : 0,
+    wins: dayStats[day].wins,
+    losses: dayStats[day].losses,
+    total: dayStats[day].total,
+  }));
+}
+
 // Stat Card Component
 const StatCard = React.memo(({ 
   icon: Icon, 
@@ -195,6 +240,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Awaited<ReturnType<typeof getTradeStats>> | null>(null);
   const [pnlCurve, setPnlCurve] = useState<Awaited<ReturnType<typeof getPnLCurve>>>([]);
   const [weeklyPnL, setWeeklyPnL] = useState<{ day: string; pnl: number }[]>([]);
+  const [dayWiseWinRate, setDayWiseWinRate] = useState<{ day: string; winRate: number; wins: number; losses: number; total: number }[]>([]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -231,11 +277,25 @@ export default function DashboardPage() {
           avgWin: winningTrades.length > 0 ? totalWins / winningTrades.length : 0,
           avgLoss: losingTrades.length > 0 ? totalLosses / losingTrades.length : 0,
           profitFactor: totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? 999 : 0,
+          avgRiskReward: (() => {
+            // Only include trades with valid R:R between 0 and 20 (filter out outliers)
+            const tradesWithRR = closedTrades.filter(t => 
+              t.riskRewardRatio !== undefined && 
+              t.riskRewardRatio !== null && 
+              t.riskRewardRatio > 0 &&
+              t.riskRewardRatio <= 20  // Cap at 20 to filter out data entry errors
+            );
+            if (tradesWithRR.length === 0) return 0;
+            return tradesWithRR.reduce((sum, t) => sum + (t.riskRewardRatio || 0), 0) / tradesWithRR.length;
+          })(),
         };
         setStats(calculatedStats);
         
         const weekly = calculateWeeklyPnL(userTrades);
         setWeeklyPnL(weekly);
+        
+        const dayWise = calculateDayWiseWinRate(userTrades);
+        setDayWiseWinRate(dayWise);
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
       }
@@ -328,7 +388,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             icon={DollarSign}
             label="Total P&L"
@@ -361,10 +421,56 @@ export default function DashboardPage() {
             gradient="bg-gradient-to-br from-pink-600 to-rose-600"
             isDark={isDark}
           />
+          <StatCard
+            icon={Target}
+            label="Avg R:R"
+            value={stats?.avgRiskReward ? `1:${stats.avgRiskReward.toFixed(1)}` : '-'}
+            positive={(stats?.avgRiskReward || 0) >= 1}
+            gradient="bg-gradient-to-br from-cyan-600 to-blue-600"
+            isDark={isDark}
+          />
         </div>
 
         {/* Charts Row */}
         <DashboardCharts pnlData={chartData} weeklyPnL={weeklyPnL} winLossData={winLossData} />
+
+        {/* Day-wise Win Rate Analysis */}
+        <div className="card">
+          <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Performance by Day of Week</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            {dayWiseWinRate.map(({ day, winRate, wins, losses, total }) => {
+              const isPositive = winRate >= 50;
+              return (
+                <div key={day} className={`card ${isDark ? 'bg-slate-800/50' : 'bg-slate-100'}`}>
+                  <div className="text-center">
+                    <div className={`text-sm font-medium mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{day}</div>
+                    <div className={`text-2xl font-bold mb-2 ${
+                      total === 0 ? (isDark ? 'text-slate-500' : 'text-slate-400') :
+                      isPositive ? 'text-emerald-400' : 'text-red-400'
+                    }`}>
+                      {total === 0 ? '-' : `${winRate.toFixed(0)}%`}
+                    </div>
+                    {total > 0 && (
+                      <>
+                        <div className={`w-full rounded-full h-2 mb-2 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}>
+                          <div
+                            className={`h-2 rounded-full ${
+                              isPositive ? 'bg-emerald-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${winRate}%` }}
+                          />
+                        </div>
+                        <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
+                          {wins}W / {losses}L
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Recent Trades */}
         <div className="card">

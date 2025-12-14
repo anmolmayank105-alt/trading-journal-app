@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { ChevronDown, Check, Plus, Search, X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
-// 20 common trading psychology states
+// 20 common trading psychology states (shared across all users)
 const DEFAULT_PSYCHOLOGY = [
   'Confident',
   'Fearful',
@@ -28,28 +28,96 @@ const DEFAULT_PSYCHOLOGY = [
   'Regretful',
 ];
 
-// Get saved custom psychology from localStorage
+// Get current user ID from localStorage
+const getCurrentUserId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.id || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+// Get user-specific storage key for custom psychology
+const getStorageKey = (): string => {
+  const userId = getCurrentUserId();
+  return userId ? `customPsychology_${userId}` : 'customPsychology_guest';
+};
+
+// Get saved custom psychology from localStorage (user-specific)
 const getCustomPsychology = (): string[] => {
   if (typeof window === 'undefined') return [];
   try {
-    const saved = localStorage.getItem('customPsychology');
+    const key = getStorageKey();
+    const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
   }
 };
 
-// Save custom psychology to localStorage
+// Save custom psychology to localStorage (user-specific)
 const saveCustomPsychology = (psychology: string) => {
   if (typeof window === 'undefined') return;
   try {
+    const key = getStorageKey();
     const existing = getCustomPsychology();
     if (!existing.includes(psychology) && !DEFAULT_PSYCHOLOGY.includes(psychology)) {
       const updated = [...existing, psychology];
-      localStorage.setItem('customPsychology', JSON.stringify(updated));
+      localStorage.setItem(key, JSON.stringify(updated));
     }
   } catch {
     // Ignore storage errors
+  }
+};
+
+// Remove custom psychology from localStorage (user-specific)
+const removeCustomPsychology = (psychology: string): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const key = getStorageKey();
+    const existing = getCustomPsychology();
+    const updated = existing.filter(p => p !== psychology);
+    localStorage.setItem(key, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+};
+
+// Get hidden/removed default psychology (user-specific)
+const getRemovedDefaultPsychology = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const userId = getCurrentUserId();
+    const key = `removedDefaultPsychology_${userId}`;
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
+// Hide/remove a default psychology (user-specific)
+const addRemovedDefaultPsychology = (psychology: string): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const userId = getCurrentUserId();
+    const key = `removedDefaultPsychology_${userId}`;
+    const existing = getRemovedDefaultPsychology();
+    if (!existing.includes(psychology) && DEFAULT_PSYCHOLOGY.includes(psychology)) {
+      const updated = [...existing, psychology];
+      localStorage.setItem(key, JSON.stringify(updated));
+      return updated;
+    }
+    return existing;
+  } catch {
+    return [];
   }
 };
 
@@ -60,7 +128,7 @@ interface PsychologyInputProps {
   className?: string;
 }
 
-export default function PsychologyInput({ 
+const PsychologyInput = memo(function PsychologyInput({ 
   value, 
   onChange, 
   placeholder = 'Select or describe your mindset...',
@@ -72,12 +140,14 @@ export default function PsychologyInput({
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
   const [customPsychology, setCustomPsychology] = useState<string[]>([]);
+  const [removedDefaultPsychology, setRemovedDefaultPsychology] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load custom psychology on mount
+  // Load custom and removed psychology on mount
   useEffect(() => {
     setCustomPsychology(getCustomPsychology());
+    setRemovedDefaultPsychology(getRemovedDefaultPsychology());
   }, []);
 
   // Sync input value with prop
@@ -85,10 +155,11 @@ export default function PsychologyInput({
     setInputValue(value);
   }, [value]);
 
-  // All available psychology states
+  // All available psychology states (filter out removed defaults)
   const allPsychology = useMemo(() => {
-    return [...DEFAULT_PSYCHOLOGY, ...customPsychology].sort();
-  }, [customPsychology]);
+    const availableDefaults = DEFAULT_PSYCHOLOGY.filter(p => !removedDefaultPsychology.includes(p));
+    return [...availableDefaults, ...customPsychology].sort();
+  }, [customPsychology, removedDefaultPsychology]);
 
   // Filtered psychology based on input
   const filteredPsychology = useMemo(() => {
@@ -122,43 +193,69 @@ export default function PsychologyInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
     onChange(newValue);
     if (!isOpen) setIsOpen(true);
-  };
+  }, [onChange, isOpen]);
 
-  const handleSelectPsychology = (psychology: string) => {
+  const handleSelectPsychology = useCallback((psychology: string) => {
     setInputValue(psychology);
     onChange(psychology);
     setIsOpen(false);
     inputRef.current?.blur();
-  };
+  }, [onChange]);
 
-  const handleAddNewPsychology = () => {
+  const handleAddNewPsychology = useCallback(() => {
     const trimmed = inputValue.trim();
     if (trimmed) {
       saveCustomPsychology(trimmed);
       setCustomPsychology(prev => [...prev, trimmed]);
-      handleSelectPsychology(trimmed);
+      setInputValue(trimmed);
+      onChange(trimmed);
+      setIsOpen(false);
+      inputRef.current?.blur();
     }
-  };
+  }, [inputValue, onChange]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setInputValue('');
     onChange('');
     inputRef.current?.focus();
-  };
+  }, [onChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && showAddNew) {
       e.preventDefault();
       handleAddNewPsychology();
     } else if (e.key === 'Escape') {
       setIsOpen(false);
     }
-  };
+  }, [showAddNew, handleAddNewPsychology]);
+
+  // Handle delete psychology (both custom and default)
+  const handleDeletePsychology = useCallback((psychology: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent selecting when deleting
+    
+    const isCustom = customPsychology.includes(psychology);
+    
+    if (isCustom) {
+      // Remove custom psychology
+      const updated = removeCustomPsychology(psychology);
+      setCustomPsychology(updated);
+    } else {
+      // Hide default psychology
+      const updated = addRemovedDefaultPsychology(psychology);
+      setRemovedDefaultPsychology(updated);
+    }
+    
+    // Clear selection if deleted psychology was selected
+    if (value === psychology) {
+      setInputValue('');
+      onChange('');
+    }
+  }, [value, onChange, customPsychology]);
 
   // Get emoji for psychology state
   const getEmoji = (psychology: string): string => {
@@ -244,24 +341,41 @@ export default function PsychologyInput({
           {/* Psychology list */}
           <div className="max-h-60 overflow-y-auto">
             {filteredPsychology.length > 0 ? (
-              filteredPsychology.map((psychology) => (
-                <button
-                  key={psychology}
-                  type="button"
-                  onClick={() => handleSelectPsychology(psychology)}
-                  className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors ${
-                    isDark 
-                      ? 'hover:bg-white/5 text-slate-200' 
-                      : 'hover:bg-slate-50 text-slate-700'
-                  } ${value === psychology ? (isDark ? 'bg-purple-600/20 text-purple-400' : 'bg-purple-50 text-purple-600') : ''}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span>{getEmoji(psychology)}</span>
-                    <span>{psychology}</span>
-                  </span>
-                  {value === psychology && <Check className="w-4 h-4" />}
-                </button>
-              ))
+              filteredPsychology.map((psychology) => {
+                const isSelected = value === psychology;
+                return (
+                  <button
+                    key={psychology}
+                    type="button"
+                    onClick={() => handleSelectPsychology(psychology)}
+                    className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors group ${
+                      isDark 
+                        ? 'hover:bg-white/5 text-slate-200' 
+                        : 'hover:bg-slate-50 text-slate-700'
+                    } ${isSelected ? (isDark ? 'bg-purple-600/20 text-purple-400' : 'bg-purple-50 text-purple-600') : ''}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>{getEmoji(psychology)}</span>
+                      <span>{psychology}</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {isSelected && <Check className="w-4 h-4" />}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeletePsychology(psychology, e)}
+                        className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                          isDark 
+                            ? 'hover:bg-red-600/30 text-red-400 hover:text-red-300' 
+                            : 'hover:bg-red-100 text-red-500 hover:text-red-600'
+                        }`}
+                        title="Remove mindset"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </button>
+                );
+              })
             ) : (
               !showAddNew && (
                 <div className={`px-4 py-8 text-center ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -297,4 +411,8 @@ export default function PsychologyInput({
       )}
     </div>
   );
-}
+});
+
+PsychologyInput.displayName = 'PsychologyInput';
+
+export default PsychologyInput;

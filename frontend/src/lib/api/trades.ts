@@ -1,10 +1,11 @@
 // Trades API service - connects to backend trade-service (MongoDB only)
-import axios from 'axios';
-import { getAccessToken, parseApiError } from './client';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken, clearTokens, parseApiError } from './client';
 import { Trade, TradeFilter } from '@/types';
 
 // Create separate axios instance for trade service
 const TRADE_API_URL = process.env.NEXT_PUBLIC_TRADE_API_URL || 'http://localhost:3003/api/v1';
+const AUTH_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 const tradeApiClient = axios.create({
   baseURL: TRADE_API_URL,
@@ -26,6 +27,62 @@ tradeApiClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Response interceptor - handle token refresh on 401
+tradeApiClient.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    
+    // Check if it's a 401 with "token expired" message
+    const errorData = error.response?.data as any;
+    const isTokenExpired = error.response?.status === 401 && 
+      (errorData?.error?.message?.toLowerCase().includes('expired') ||
+       errorData?.message?.toLowerCase().includes('expired'));
+    
+    // If 401 (token expired) and we haven't already tried to refresh
+    if (isTokenExpired && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        try {
+          const response = await axios.post(`${AUTH_API_URL}/auth/refresh`, {
+            refreshToken,
+          });
+          
+          const { accessToken, refreshToken: newRefreshToken } = response.data.data || response.data;
+          setAccessToken(accessToken);
+          if (newRefreshToken) {
+            setRefreshToken(newRefreshToken);
+          }
+          
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          }
+          return tradeApiClient(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed - clear tokens and redirect to login
+          clearTokens();
+          localStorage.removeItem('user');
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+          return Promise.reject(refreshError);
+        }
+      } else {
+        // No refresh token - redirect to login
+        clearTokens();
+        localStorage.removeItem('user');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 export interface TradeResult {
   success: boolean;
@@ -88,22 +145,22 @@ function mapTradeToApi(trade: Partial<Trade>): any {
     quantity: trade.quantity,
     entryPrice: trade.entryPrice,
     entryTimestamp: trade.entryDate || new Date().toISOString(),
-    stopLoss: trade.stopLoss,
-    target: trade.target,
-    strategy: trade.strategy,
-    notes: trade.notes,
     tags: trade.tags || [],
     brokerage: 0,
   };
 
-  // Include optional fields if they exist
-  if (trade.exitPrice !== undefined) apiData.exitPrice = trade.exitPrice;
-  if (trade.exitTime !== undefined) apiData.exitTimestamp = trade.exitTime;
-  if (trade.status !== undefined) apiData.status = trade.status;
-  if (trade.psychology !== undefined) apiData.psychology = trade.psychology;
-  if (trade.mistake !== undefined) apiData.mistake = trade.mistake;
-  if (trade.riskRewardRatio !== undefined) apiData.riskRewardRatio = trade.riskRewardRatio;
-  if (trade.timeFrame !== undefined) apiData.timeFrame = trade.timeFrame;
+  // Include optional fields only if they have actual values (not undefined/null/empty)
+  if (trade.stopLoss !== undefined && trade.stopLoss !== null) apiData.stopLoss = trade.stopLoss;
+  if (trade.target !== undefined && trade.target !== null) apiData.target = trade.target;
+  if (trade.strategy !== undefined && trade.strategy !== null && trade.strategy !== '') apiData.strategy = trade.strategy;
+  if (trade.notes !== undefined && trade.notes !== null && trade.notes !== '') apiData.notes = trade.notes;
+  if (trade.exitPrice !== undefined && trade.exitPrice !== null) apiData.exitPrice = trade.exitPrice;
+  if (trade.exitTime !== undefined && trade.exitTime !== null) apiData.exitTimestamp = trade.exitTime;
+  if (trade.status !== undefined && trade.status !== null) apiData.status = trade.status;
+  if (trade.psychology !== undefined && trade.psychology !== null && trade.psychology !== '') apiData.psychology = trade.psychology;
+  if (trade.mistake !== undefined && trade.mistake !== null && trade.mistake !== '') apiData.mistake = trade.mistake;
+  if (trade.riskRewardRatio !== undefined && trade.riskRewardRatio !== null) apiData.riskRewardRatio = trade.riskRewardRatio;
+  if (trade.timeFrame !== undefined && trade.timeFrame !== null && trade.timeFrame !== '') apiData.timeFrame = trade.timeFrame;
 
   return apiData;
 }

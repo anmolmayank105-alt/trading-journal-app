@@ -47,6 +47,41 @@ export const AVAILABLE_BROKERS = [
     logo: '/brokers/fyers.png',
     features: ['Trade sync', 'Charting data'],
   },
+  {
+    id: 'dhan',
+    name: 'Dhan',
+    description: 'Connect via Dhan API',
+    logo: '/brokers/dhan.png',
+    features: ['Auto sync', 'Real-time positions', 'Order tracking'],
+  },
+  {
+    id: 'exness',
+    name: 'Exness',
+    description: 'Connect your Exness account',
+    logo: '/brokers/exness.png',
+    features: ['Forex trading', 'Auto sync', 'MT4/MT5 integration'],
+  },
+  {
+    id: 'deltaexchange',
+    name: 'Delta Exchange India',
+    description: 'Connect via Delta API',
+    logo: '/brokers/delta.png',
+    features: ['Derivatives trading', 'Auto sync', 'Real-time data'],
+  },
+  {
+    id: 'vantage',
+    name: 'Vantage',
+    description: 'Connect your Vantage account',
+    logo: '/brokers/vantage.png',
+    features: ['Forex & CFDs', 'Trade sync', 'Multi-asset'],
+  },
+  {
+    id: 'xm',
+    name: 'XM Broker',
+    description: 'Connect via XM API',
+    logo: '/brokers/xm.png',
+    features: ['Forex trading', 'Auto sync', 'Global markets'],
+  },
 ];
 
 // Get user's broker connections

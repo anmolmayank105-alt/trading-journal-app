@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { TrendingUp, TrendingDown, Target } from 'lucide-react';
 
@@ -21,8 +21,22 @@ interface StrategyAnalysisProps {
   period: string;
 }
 
-export default function StrategyAnalysis({ data, period }: StrategyAnalysisProps) {
+const StrategyAnalysis = memo(function StrategyAnalysis({ data, period }: StrategyAnalysisProps) {
   const router = useRouter();
+  
+  const handleViewAll = useCallback(() => {
+    router.push('/analytics/strategies');
+  }, [router]);
+  
+  const { topStrategies, worstStrategies } = useMemo(() => {
+    if (!data || data.length === 0) {
+      return { topStrategies: [], worstStrategies: [] };
+    }
+    return {
+      topStrategies: data.filter(s => s.totalPnL > 0).sort((a, b) => b.totalPnL - a.totalPnL).slice(0, 5),
+      worstStrategies: data.filter(s => s.totalPnL < 0).sort((a, b) => a.totalPnL - b.totalPnL).slice(0, 5),
+    };
+  }, [data]);
   
   if (!data || data.length === 0) {
     return (
@@ -35,15 +49,12 @@ export default function StrategyAnalysis({ data, period }: StrategyAnalysisProps
     );
   }
 
-  const topStrategies = data.filter(s => s.totalPnL > 0).sort((a, b) => b.totalPnL - a.totalPnL).slice(0, 5);
-  const worstStrategies = data.filter(s => s.totalPnL < 0).sort((a, b) => a.totalPnL - b.totalPnL).slice(0, 5);
-
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-white">📊 Strategy Performance - {period}</h2>
         <button
-          onClick={() => router.push('/analytics/strategies')}
+          onClick={handleViewAll}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-white"
         >
           <span className="text-sm font-medium">View All</span>
@@ -152,4 +163,8 @@ export default function StrategyAnalysis({ data, period }: StrategyAnalysisProps
       </div>
     </div>
   );
-}
+});
+
+StrategyAnalysis.displayName = 'StrategyAnalysis';
+
+export default StrategyAnalysis;

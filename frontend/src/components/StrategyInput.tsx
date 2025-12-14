@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { ChevronDown, Check, Plus, Search, X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
-// Default predefined strategies
+// Default predefined strategies (shared across all users)
 const DEFAULT_STRATEGIES = [
   'Breakout',
   'Breakdown',
@@ -26,28 +26,96 @@ const DEFAULT_STRATEGIES = [
   'BTST/STBT',
 ];
 
-// Get saved custom strategies from localStorage
+// Get current user ID from localStorage
+const getCurrentUserId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.id || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+// Get user-specific storage key for custom strategies
+const getStorageKey = (): string => {
+  const userId = getCurrentUserId();
+  return userId ? `customStrategies_${userId}` : 'customStrategies_guest';
+};
+
+// Get saved custom strategies from localStorage (user-specific)
 const getCustomStrategies = (): string[] => {
   if (typeof window === 'undefined') return [];
   try {
-    const saved = localStorage.getItem('customStrategies');
+    const key = getStorageKey();
+    const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
   }
 };
 
-// Save custom strategy to localStorage
+// Save custom strategy to localStorage (user-specific)
 const saveCustomStrategy = (strategy: string) => {
   if (typeof window === 'undefined') return;
   try {
+    const key = getStorageKey();
     const existing = getCustomStrategies();
     if (!existing.includes(strategy) && !DEFAULT_STRATEGIES.includes(strategy)) {
       const updated = [...existing, strategy];
-      localStorage.setItem('customStrategies', JSON.stringify(updated));
+      localStorage.setItem(key, JSON.stringify(updated));
     }
   } catch {
     // Ignore storage errors
+  }
+};
+
+// Remove custom strategy from localStorage (user-specific)
+const removeCustomStrategy = (strategy: string): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const key = getStorageKey();
+    const existing = getCustomStrategies();
+    const updated = existing.filter(s => s !== strategy);
+    localStorage.setItem(key, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+};
+
+// Get hidden/removed default strategies (user-specific)
+const getRemovedDefaultStrategies = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const userId = getCurrentUserId();
+    const key = `removedDefaultStrategies_${userId}`;
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
+// Hide/remove a default strategy (user-specific)
+const addRemovedDefaultStrategy = (strategy: string): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const userId = getCurrentUserId();
+    const key = `removedDefaultStrategies_${userId}`;
+    const existing = getRemovedDefaultStrategies();
+    if (!existing.includes(strategy) && DEFAULT_STRATEGIES.includes(strategy)) {
+      const updated = [...existing, strategy];
+      localStorage.setItem(key, JSON.stringify(updated));
+      return updated;
+    }
+    return existing;
+  } catch {
+    return [];
   }
 };
 
@@ -58,7 +126,7 @@ interface StrategyInputProps {
   className?: string;
 }
 
-export default function StrategyInput({ 
+const StrategyInput = memo(function StrategyInput({ 
   value, 
   onChange, 
   placeholder = 'Select or type strategy...',
@@ -70,12 +138,14 @@ export default function StrategyInput({
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
   const [customStrategies, setCustomStrategies] = useState<string[]>([]);
+  const [removedDefaultStrategies, setRemovedDefaultStrategies] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load custom strategies on mount
+  // Load custom and removed strategies on mount
   useEffect(() => {
     setCustomStrategies(getCustomStrategies());
+    setRemovedDefaultStrategies(getRemovedDefaultStrategies());
   }, []);
 
   // Sync input value with prop
@@ -83,10 +153,11 @@ export default function StrategyInput({
     setInputValue(value);
   }, [value]);
 
-  // All available strategies
+  // All available strategies (filter out removed defaults)
   const allStrategies = useMemo(() => {
-    return [...DEFAULT_STRATEGIES, ...customStrategies].sort();
-  }, [customStrategies]);
+    const availableDefaults = DEFAULT_STRATEGIES.filter(s => !removedDefaultStrategies.includes(s));
+    return [...availableDefaults, ...customStrategies].sort();
+  }, [customStrategies, removedDefaultStrategies]);
 
   // Filtered strategies based on input
   const filteredStrategies = useMemo(() => {
@@ -120,43 +191,69 @@ export default function StrategyInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
     onChange(newValue);
     if (!isOpen) setIsOpen(true);
-  };
+  }, [onChange, isOpen]);
 
-  const handleSelectStrategy = (strategy: string) => {
+  const handleSelectStrategy = useCallback((strategy: string) => {
     setInputValue(strategy);
     onChange(strategy);
     setIsOpen(false);
     inputRef.current?.blur();
-  };
+  }, [onChange]);
 
-  const handleAddNewStrategy = () => {
+  const handleAddNewStrategy = useCallback(() => {
     const trimmed = inputValue.trim();
     if (trimmed) {
       saveCustomStrategy(trimmed);
       setCustomStrategies(prev => [...prev, trimmed]);
-      handleSelectStrategy(trimmed);
+      setInputValue(trimmed);
+      onChange(trimmed);
+      setIsOpen(false);
+      inputRef.current?.blur();
     }
-  };
+  }, [inputValue, onChange]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setInputValue('');
     onChange('');
     inputRef.current?.focus();
-  };
+  }, [onChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && showAddNew) {
       e.preventDefault();
       handleAddNewStrategy();
     } else if (e.key === 'Escape') {
       setIsOpen(false);
     }
-  };
+  }, [showAddNew, handleAddNewStrategy]);
+
+  // Handle delete strategy (both custom and default)
+  const handleDeleteStrategy = useCallback((strategy: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent selecting when deleting
+    
+    const isCustom = customStrategies.includes(strategy);
+    
+    if (isCustom) {
+      // Remove custom strategy
+      const updated = removeCustomStrategy(strategy);
+      setCustomStrategies(updated);
+    } else {
+      // Hide default strategy
+      const updated = addRemovedDefaultStrategy(strategy);
+      setRemovedDefaultStrategies(updated);
+    }
+    
+    // Clear selection if deleted strategy was selected
+    if (value === strategy) {
+      setInputValue('');
+      onChange('');
+    }
+  }, [value, onChange, customStrategies]);
 
   return (
     <div className={`relative ${className}`}>
@@ -215,21 +312,38 @@ export default function StrategyInput({
           {/* Strategy list */}
           <div className="max-h-60 overflow-y-auto">
             {filteredStrategies.length > 0 ? (
-              filteredStrategies.map((strategy) => (
-                <button
-                  key={strategy}
-                  type="button"
-                  onClick={() => handleSelectStrategy(strategy)}
-                  className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors ${
-                    isDark 
-                      ? 'hover:bg-white/5 text-slate-200' 
-                      : 'hover:bg-slate-50 text-slate-700'
-                  } ${value === strategy ? (isDark ? 'bg-indigo-600/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600') : ''}`}
-                >
-                  <span>{strategy}</span>
-                  {value === strategy && <Check className="w-4 h-4" />}
-                </button>
-              ))
+              filteredStrategies.map((strategy) => {
+                const isSelected = value === strategy;
+                return (
+                  <button
+                    key={strategy}
+                    type="button"
+                    onClick={() => handleSelectStrategy(strategy)}
+                    className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors group ${
+                      isDark 
+                        ? 'hover:bg-white/5 text-slate-200' 
+                        : 'hover:bg-slate-50 text-slate-700'
+                    } ${isSelected ? (isDark ? 'bg-indigo-600/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600') : ''}`}
+                  >
+                    <span>{strategy}</span>
+                    <div className="flex items-center gap-2">
+                      {isSelected && <Check className="w-4 h-4" />}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteStrategy(strategy, e)}
+                        className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                          isDark 
+                            ? 'hover:bg-red-600/30 text-red-400 hover:text-red-300' 
+                            : 'hover:bg-red-100 text-red-500 hover:text-red-600'
+                        }`}
+                        title="Remove strategy"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </button>
+                );
+              })
             ) : (
               !showAddNew && (
                 <div className={`px-4 py-8 text-center ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -265,4 +379,8 @@ export default function StrategyInput({
       )}
     </div>
   );
-}
+});
+
+StrategyInput.displayName = 'StrategyInput';
+
+export default StrategyInput;

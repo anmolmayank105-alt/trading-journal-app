@@ -7,6 +7,7 @@ import AddTradeModal from '@/components/AddTradeModal';
 import DeleteModal from '@/components/DeleteModal';
 import { getTrades, deleteTrade } from '@/lib/api/trades';
 import { Trade, TradeFilter } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   Plus,
   Search,
@@ -26,6 +27,8 @@ function TradesContent() {
   const searchParams = useSearchParams();
   const symbolFromUrl = searchParams.get('symbol');
   const dateFromUrl = searchParams.get('date');
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   
   const [trades, setTrades] = useState<Trade[]>([]);
   const [mounted, setMounted] = useState(false);
@@ -330,6 +333,7 @@ function TradesContent() {
                       <th className="px-4 py-4 font-medium">Entry</th>
                       <th className="px-4 py-4 font-medium">Exit</th>
                       <th className="px-4 py-4 font-medium">P&L</th>
+                      <th className="px-4 py-4 font-medium">R:R</th>
                       <th className="px-4 py-4 font-medium">Date</th>
                       <th className="px-4 py-4 font-medium">Actions</th>
                     </tr>
@@ -348,7 +352,9 @@ function TradesContent() {
                             </div>
                             <div>
                               <div className="font-medium text-white">{trade.symbol}</div>
-                              <div className="text-xs text-slate-400">{trade.exchange} • {trade.segment}</div>
+                              <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                {trade.exchange} • <span className={`text-sm font-semibold uppercase ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>{trade.segment}</span>
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -374,6 +380,15 @@ function TradesContent() {
                             })()
                           ) : (
                             <span className="badge badge-warning">OPEN</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          {trade.riskRewardRatio !== undefined && trade.riskRewardRatio !== null ? (
+                            <span className={`font-medium ${trade.riskRewardRatio >= 1 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              1:{trade.riskRewardRatio.toFixed(1)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">-</span>
                           )}
                         </td>
                         <td className="px-4 py-4 text-slate-400 text-sm">
@@ -460,6 +475,7 @@ function TradesContent() {
 
       {/* Modals */}
       <AddTradeModal
+        key={editingTrade?.id || 'new'}
         isOpen={showAddModal}
         onClose={() => { setShowAddModal(false); setEditingTrade(null); }}
         onSave={handleSave}

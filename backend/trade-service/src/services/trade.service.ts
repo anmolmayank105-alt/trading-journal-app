@@ -323,9 +323,10 @@ export class TradeService {
       throw new NotFoundError('Trade', tradeId);
     }
     
-    // Can't update closed trades entry price/quantity (but allow dates, exit price, notes/tags/strategy)
+    // Can't update closed trades entry price/quantity (but allow dates, exit price, notes/tags/strategy/psychology/mistake)
     if (trade.status === 'closed') {
-      const allowedFields = ['notes', 'tags', 'strategy', 'exitPrice', 'exitTimestamp', 'entryTimestamp', 'entryDate', 'exitTime'];
+      // Allow ALL fields to be updated for closed trades - user should be able to correct any mistakes
+      const allowedFields = ['notes', 'tags', 'strategy', 'psychology', 'mistake', 'exitPrice', 'exitTimestamp', 'entryTimestamp', 'entryDate', 'exitDate', 'exitTime', 'stopLoss', 'target', 'riskRewardRatio', 'timeFrame', 'symbol', 'exchange', 'segment', 'tradeType', 'quantity', 'entryPrice', 'brokerage'];
       const updateKeys = Object.keys(dto);
       const hasDisallowedFields = updateKeys.some(key => !allowedFields.includes(key));
       
@@ -341,16 +342,31 @@ export class TradeService {
       // For closed trades, use direct DB update to avoid validation issues
       const updateFields: any = {};
       
+      // Core trade details
+      if (dtoAny.symbol !== undefined) updateFields.symbol = dtoAny.symbol;
+      if (dtoAny.exchange !== undefined) updateFields.exchange = dtoAny.exchange;
+      if (dtoAny.segment !== undefined) updateFields.segment = dtoAny.segment;
+      if (dtoAny.tradeType !== undefined) updateFields.tradeType = dtoAny.tradeType;
+      
+      // Entry details
+      if (dtoAny.quantity !== undefined) updateFields['entry.quantity'] = dtoAny.quantity;
+      if (dtoAny.entryPrice !== undefined) updateFields['entry.price'] = dtoAny.entryPrice;
+      if (dtoAny.brokerage !== undefined) updateFields['entry.brokerage'] = dtoAny.brokerage;
+      
       if (dtoAny.exitPrice !== undefined && trade.exit) {
         updateFields['exit.price'] = dtoAny.exitPrice;
         trade.exit.price = dtoAny.exitPrice;
-        const calculatedPnL = trade.calculatePnL();
-        updateFields['pnl.gross'] = calculatedPnL.gross || 0;
       }
       
-      if (dto.strategy) updateFields.strategy = dto.strategy;
-      if (dto.notes) updateFields.notes = dto.notes;
-      if (dto.tags) updateFields.tags = dto.tags;
+      if (dto.strategy !== undefined) updateFields.strategy = dto.strategy;
+      if (dto.notes !== undefined) updateFields.notes = dto.notes;
+      if (dto.tags !== undefined) updateFields.tags = dto.tags;
+      if (dtoAny.psychology !== undefined) updateFields.psychology = dtoAny.psychology;
+      if (dtoAny.mistake !== undefined) updateFields.mistake = dtoAny.mistake;
+      if (dto.stopLoss !== undefined) updateFields.stopLoss = dto.stopLoss;
+      if (dto.target !== undefined) updateFields.target = dto.target;
+      if (dtoAny.riskRewardRatio !== undefined) updateFields.riskRewardRatio = dtoAny.riskRewardRatio;
+      if (dtoAny.timeFrame !== undefined) updateFields.timeFrame = dtoAny.timeFrame;
       
       // Handle date updates
       if (dto.entryTimestamp || dtoAny.entryDate) {
@@ -358,8 +374,8 @@ export class TradeService {
         updateFields['entry.timestamp'] = new Date(entryDate);
       }
       
-      if (dtoAny.exitTimestamp || dtoAny.exitTime) {
-        const exitDate = dtoAny.exitTimestamp || dtoAny.exitTime;
+      if (dtoAny.exitTimestamp || dtoAny.exitDate || dtoAny.exitTime) {
+        const exitDate = dtoAny.exitTimestamp || dtoAny.exitDate || dtoAny.exitTime;
         if (trade.exit) {
           updateFields['exit.timestamp'] = new Date(exitDate);
         }
@@ -373,6 +389,28 @@ export class TradeService {
           { _id: trade._id },
           { $set: updateFields }
         );
+        
+        // Recalculate PnL if entry/exit price or quantity changed
+        if (dtoAny.entryPrice !== undefined || dtoAny.exitPrice !== undefined || dtoAny.quantity !== undefined) {
+          const updatedTrade = await TradeModel.findById(trade._id);
+          if (updatedTrade && updatedTrade.exit) {
+            const entryPrice = updatedTrade.entry.price;
+            const exitPrice = updatedTrade.exit.price;
+            const qty = updatedTrade.entry.quantity;
+            const isLong = updatedTrade.tradeType === 'long';
+            
+            const grossPnL = isLong 
+              ? (exitPrice - entryPrice) * qty 
+              : (entryPrice - exitPrice) * qty;
+            
+            console.log('🔧 Recalculating PnL:', { entryPrice, exitPrice, qty, isLong, grossPnL });
+            
+            await TradeModel.updateOne(
+              { _id: trade._id },
+              { $set: { 'pnl.gross': grossPnL } }
+            );
+          }
+        }
         
         // Invalidate cache
         tradeCache.del(`trade:${userId}:${tradeId}`);
@@ -987,7 +1025,11 @@ export class TradeService {
       };
     }
     
-    logger.info({ userId, dateRange }, 'Fetching mistake analytics');
+    logger.info({ userId, dateRange, match }, 'Fetching mistake analytics with match criteria');
+    
+    // First check if any trades match
+    const matchingCount = await TradeModel.countDocuments(match);
+    logger.info({ matchingCount }, 'Number of trades matching mistake criteria');
     
     const result = await TradeModel.aggregate([
       { $match: match },
@@ -1008,7 +1050,7 @@ export class TradeService {
       { $sort: { count: -1 } },
     ]);
     
-    logger.info({ count: result.length }, 'Mistake analytics fetched');
+    logger.info({ count: result.length, result }, 'Mistake analytics fetched');
     return result;
   }
 }

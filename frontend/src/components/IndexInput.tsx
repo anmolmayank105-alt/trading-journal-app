@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { ChevronDown, Check, Search, X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -39,7 +39,7 @@ interface IndexInputProps {
   className?: string;
 }
 
-export default function IndexInput({ 
+const IndexInput = memo(function IndexInput({ 
   value, 
   onChange, 
   placeholder = 'Select an index...',
@@ -53,6 +53,7 @@ export default function IndexInput({
   const [activeTab, setActiveTab] = useState<'india' | 'global'>('india');
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const justSelectedRef = useRef(false);  // Track if a selection was just made
 
   // Sync input value with prop
   useEffect(() => {
@@ -89,32 +90,28 @@ export default function IndexInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value.toUpperCase(); // Convert to uppercase for index symbols
     setInputValue(newValue);
     if (!isOpen) setIsOpen(true);
-    
-    // Update parent immediately with manual input
-    // Use NSE as default exchange for manually typed indices
-    const matchedIndex = currentIndices.find(idx => idx.symbol === newValue);
-    const exchange = matchedIndex?.exchange || 'NSE';
-    onChange(newValue, exchange);
-  };
+    // Don't call onChange here - wait for blur or selection
+  }, [isOpen]);
 
-  const handleSelectIndex = (index: typeof INDIAN_INDICES[0]) => {
+  const handleSelectIndex = useCallback((index: typeof INDIAN_INDICES[0]) => {
+    justSelectedRef.current = true;  // Mark that selection just happened
     setInputValue(index.symbol);
     onChange(index.symbol, index.exchange);
     setIsOpen(false);
     inputRef.current?.blur();
-  };
+  }, [onChange]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setInputValue('');
     onChange('', '');
     inputRef.current?.focus();
-  };
+  }, [onChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setIsOpen(false);
     } else if (e.key === 'Enter') {
@@ -129,11 +126,16 @@ export default function IndexInput({
         onChange(match.symbol, match.exchange);
       }
     }
-  };
+  }, [filteredIndices, onChange]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     // Small delay to allow click events on dropdown items
     setTimeout(() => {
+      // Skip if a selection was just made via click
+      if (justSelectedRef.current) {
+        justSelectedRef.current = false;
+        return;
+      }
       // Ensure the current manual input value is saved
       if (inputValue) {
         const matchedIndex = currentIndices.find(idx => idx.symbol === inputValue);
@@ -141,7 +143,7 @@ export default function IndexInput({
         onChange(inputValue, exchange);
       }
     }, 200);
-  };
+  }, [inputValue, currentIndices, onChange]);
 
   return (
     <div className={`relative ${className}`}>
@@ -272,4 +274,8 @@ export default function IndexInput({
       )}
     </div>
   );
-}
+});
+
+IndexInput.displayName = 'IndexInput';
+
+export default IndexInput;

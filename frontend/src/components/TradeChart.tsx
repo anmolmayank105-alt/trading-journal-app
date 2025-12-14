@@ -50,6 +50,7 @@ export default function TradeChart({ data, isProfit = true }: TradeChartProps) {
           contentStyle={tooltipStyle}
           labelStyle={{ color: '#94a3b8' }}
           formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Price']}
+          cursor={false}
         />
         <Area
           type="monotone"

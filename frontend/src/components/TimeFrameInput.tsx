@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { Clock, ChevronDown, X } from 'lucide-react';
 
 // Default time frames
@@ -15,10 +15,9 @@ interface TimeFrameInputProps {
   placeholder?: string;
 }
 
-export default function TimeFrameInput({ value, onChange, placeholder = "Select or enter time frame..." }: TimeFrameInputProps) {
+const TimeFrameInput = memo(function TimeFrameInput({ value, onChange, placeholder = "Select or enter time frame..." }: TimeFrameInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
-  const [filteredOptions, setFilteredOptions] = useState<string[]>(DEFAULT_TIME_FRAMES);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -27,16 +26,14 @@ export default function TimeFrameInput({ value, onChange, placeholder = "Select 
     setInputValue(value);
   }, [value]);
 
-  // Filter options based on input
-  useEffect(() => {
+  // Filter options based on input - use useMemo
+  const filteredOptions = useMemo(() => {
     if (inputValue) {
-      const filtered = DEFAULT_TIME_FRAMES.filter(tf =>
+      return DEFAULT_TIME_FRAMES.filter(tf =>
         tf.toLowerCase().includes(inputValue.toLowerCase())
       );
-      setFilteredOptions(filtered);
-    } else {
-      setFilteredOptions(DEFAULT_TIME_FRAMES);
     }
+    return DEFAULT_TIME_FRAMES;
   }, [inputValue]);
 
   // Handle click outside
@@ -54,25 +51,25 @@ export default function TimeFrameInput({ value, onChange, placeholder = "Select 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [inputValue, value, onChange]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
     setIsOpen(true);
-  };
+  }, []);
 
-  const handleSelect = (timeFrame: string) => {
+  const handleSelect = useCallback((timeFrame: string) => {
     setInputValue(timeFrame);
     onChange(timeFrame);
     setIsOpen(false);
-  };
+  }, [onChange]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setInputValue('');
     onChange('');
     inputRef.current?.focus();
-  };
+  }, [onChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (inputValue) {
@@ -82,7 +79,7 @@ export default function TimeFrameInput({ value, onChange, placeholder = "Select 
     } else if (e.key === 'Escape') {
       setIsOpen(false);
     }
-  };
+  }, [inputValue, onChange]);
 
   return (
     <div ref={containerRef} className="relative">
@@ -167,4 +164,8 @@ export default function TimeFrameInput({ value, onChange, placeholder = "Select 
       )}
     </div>
   );
-}
+});
+
+TimeFrameInput.displayName = 'TimeFrameInput';
+
+export default TimeFrameInput;

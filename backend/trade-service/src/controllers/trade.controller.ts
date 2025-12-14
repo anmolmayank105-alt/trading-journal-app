@@ -5,7 +5,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
 import { tradeService, TradeQueryOptions } from '../services';
-import { validate, schemas } from '../../../shared/dist/utils';
+import { validate, schemas, logger } from '../../../shared/dist/utils';
 import { AuthenticatedRequest } from '../../../shared/dist/types';
 
 // Helper to validate ObjectId
@@ -25,7 +25,9 @@ export class TradeController {
         return;
       }
       
+      logger.info({ body: req.body }, 'Create trade request received');
       const dto = validate(schemas.createTrade, req.body);
+      logger.info('Validation passed, creating trade');
       const trade = await tradeService.createTrade(userId, dto);
       
       res.status(201).json({
