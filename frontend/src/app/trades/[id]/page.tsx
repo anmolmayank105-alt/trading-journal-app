@@ -776,31 +776,39 @@ export default function TradeDetailPage() {
       return { pnl: 0, pnlPercentage: 0 };
     }
     
+    // Use the backend-calculated P&L which already includes brokerage
+    if (trade.pnl !== undefined && trade.pnl !== 0) {
+      const entry = trade.entryPrice;
+      const exit = trade.exitPrice;
+      const pnlPercentage = trade.tradeType === 'long' 
+        ? ((exit - entry) / entry) * 100
+        : ((entry - exit) / entry) * 100;
+      console.log('📊 [TradeDetail] Using backend P&L:', { pnl: trade.pnl, pnlPercentage });
+      return { pnl: trade.pnl, pnlPercentage };
+    }
+    
+    // Fallback: calculate locally if backend P&L not available
     const entry = trade.entryPrice;
     const exit = trade.exitPrice;
     const qty = trade.quantity;
-    const charges = trade.charges || 0;
+    const charges = (trade.charges || 0) + (trade.entryBrokerage || 0) + (trade.exitBrokerage || 0);
     
     let pnl: number;
     let pnlPercentage: number;
     
     if (trade.tradeType === 'long') {
-      // Long trade: buy low, sell high
-      // Profit = (exitPrice - entryPrice) * quantity
       pnl = (exit - entry) * qty - charges;
       pnlPercentage = ((exit - entry) / entry) * 100;
-      console.log('📊 [TradeDetail] LONG trade result:', { 
+      console.log('📊 [TradeDetail] LONG trade result (fallback):', { 
         pnl, 
         pnlPercentage, 
         formula: `(${exit} - ${entry}) * ${qty} - ${charges} = ${pnl}`,
         isProfit: pnl >= 0 ? 'PROFIT ✅' : 'LOSS ❌'
       });
     } else {
-      // Short trade: sell high, buy low
-      // Profit = (entryPrice - exitPrice) * quantity
       pnl = (entry - exit) * qty - charges;
       pnlPercentage = ((entry - exit) / entry) * 100;
-      console.log('📊 [TradeDetail] SHORT trade result:', { 
+      console.log('📊 [TradeDetail] SHORT trade result (fallback):', { 
         pnl, 
         pnlPercentage, 
         formula: `(${entry} - ${exit}) * ${qty} - ${charges} = ${pnl}`,

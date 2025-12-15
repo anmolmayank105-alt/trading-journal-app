@@ -60,24 +60,33 @@ function TradesContent() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Helper to calculate correct P&L
+  // Helper to get P&L - use backend-calculated value, fallback to local calculation
   const getCorrectPnL = useCallback((trade: Trade) => {
     if (!trade.exitPrice || trade.status !== 'closed') {
       return { pnl: 0, pnlPercentage: 0 };
     }
     
+    // Use the backend-calculated P&L which already includes brokerage
+    if (trade.pnl !== undefined && trade.pnl !== 0) {
+      const entry = trade.entryPrice;
+      const exit = trade.exitPrice;
+      const pnlPercentage = trade.tradeType === 'long' 
+        ? ((exit - entry) / entry) * 100
+        : ((entry - exit) / entry) * 100;
+      return { pnl: trade.pnl, pnlPercentage };
+    }
+    
+    // Fallback: calculate locally if backend P&L not available
     const entry = trade.entryPrice;
     const exit = trade.exitPrice;
     const qty = trade.quantity;
-    const charges = trade.charges || 0;
+    const charges = (trade.charges || 0) + (trade.entryBrokerage || 0) + (trade.exitBrokerage || 0);
     
     if (trade.tradeType === 'long') {
-      // Long: profit when exit > entry
       const pnl = (exit - entry) * qty - charges;
       const pnlPercentage = ((exit - entry) / entry) * 100;
       return { pnl, pnlPercentage };
     } else {
-      // Short: profit when entry > exit
       const pnl = (entry - exit) * qty - charges;
       const pnlPercentage = ((entry - exit) / entry) * 100;
       return { pnl, pnlPercentage };
