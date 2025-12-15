@@ -98,8 +98,9 @@ function mapApiTrade(apiTrade: any): Trade {
   if (typeof apiTrade.pnl === 'number') {
     pnl = apiTrade.pnl;
   } else if (apiTrade.pnl && typeof apiTrade.pnl === 'object') {
-    // Use gross for calculations (net includes charges which are tracked separately)
-    pnl = apiTrade.pnl.gross || 0;
+    // Use net P&L (after brokerage/charges deduction) for accurate reporting
+    // Fall back to gross if net is not available
+    pnl = apiTrade.pnl.net !== undefined ? apiTrade.pnl.net : (apiTrade.pnl.gross || 0);
   }
   
   return {
