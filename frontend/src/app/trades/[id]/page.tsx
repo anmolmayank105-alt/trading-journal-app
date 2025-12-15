@@ -891,7 +891,7 @@ export default function TradeDetailPage() {
               P&L
             </div>
             <p className={`text-xl font-bold ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
-              {trade.status === 'closed' ? (
+              {trade.status === 'closed' && pnl !== null && pnl !== undefined ? (
                 <>
                   {isProfit ? '+' : ''}₹{pnl.toLocaleString()}
                   <span className="text-sm ml-2">({pnlPercentage.toFixed(2)}%)</span>
@@ -1005,7 +1005,7 @@ export default function TradeDetailPage() {
               <div className="flex justify-between py-3">
                 <span className="text-slate-400">Net P&L</span>
                 <span className={`font-medium ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {trade.status === 'closed' ? `${isProfit ? '+' : ''}₹${pnl.toLocaleString()}` : '-'}
+                  {trade.status === 'closed' && pnl !== null && pnl !== undefined ? `${isProfit ? '+' : ''}₹${pnl.toLocaleString()}` : '-'}
                 </span>
               </div>
             </div>
