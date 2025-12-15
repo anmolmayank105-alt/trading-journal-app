@@ -367,16 +367,17 @@ const SegmentChart = React.memo(({ data }: { data: SegmentData[] }) => {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
+      <PieChart margin={{ top: 10, right: 80, bottom: 10, left: 80 }}>
         <Pie
           data={data}
           dataKey="value"
           nameKey="name"
           cx="50%"
           cy="50%"
-          outerRadius="70%"
+          outerRadius={80}
           label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
           labelLine={{ stroke: '#64748b' }}
+          style={{ fontSize: '12px', fill: '#e2e8f0' }}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.color} />
@@ -387,6 +388,11 @@ const SegmentChart = React.memo(({ data }: { data: SegmentData[] }) => {
           itemStyle={{ color: '#ffffff' }}
           labelStyle={{ color: '#ffffff' }}
           cursor={false}
+        />
+        <Legend 
+          verticalAlign="bottom"
+          height={36}
+          formatter={(value) => <span style={{ color: '#e2e8f0', fontSize: '12px' }}>{value}</span>}
         />
       </PieChart>
     </ResponsiveContainer>
