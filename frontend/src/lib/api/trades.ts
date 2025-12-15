@@ -121,6 +121,8 @@ function mapApiTrade(apiTrade: any): Trade {
     pnl: pnl,
     pnlPercentage: apiTrade.pnl?.percentage || apiTrade.pnl?.percentageGain || apiTrade.pnlPercentage,
     charges: apiTrade.pnl?.charges || apiTrade.charges || 0,
+    entryBrokerage: apiTrade.entry?.brokerage || 0,
+    exitBrokerage: apiTrade.exit?.brokerage || 0,
     stopLoss: apiTrade.stopLoss,
     target: apiTrade.target,
     riskRewardRatio: apiTrade.riskRewardRatio,
@@ -135,7 +137,7 @@ function mapApiTrade(apiTrade: any): Trade {
 }
 
 // Convert frontend trade to API format
-function mapTradeToApi(trade: Partial<Trade>): any {
+function mapTradeToApi(trade: Partial<Trade> & { brokerage?: number }): any {
   const apiData: any = {
     symbol: trade.symbol,
     exchange: trade.exchange || 'NSE',
@@ -146,7 +148,7 @@ function mapTradeToApi(trade: Partial<Trade>): any {
     entryPrice: trade.entryPrice,
     entryTimestamp: trade.entryDate || new Date().toISOString(),
     tags: trade.tags || [],
-    brokerage: 0,
+    brokerage: trade.brokerage || trade.entryBrokerage || 0,
   };
 
   // Include optional fields only if they have actual values (not undefined/null/empty)
@@ -161,6 +163,7 @@ function mapTradeToApi(trade: Partial<Trade>): any {
   if (trade.mistake !== undefined && trade.mistake !== null && trade.mistake !== '') apiData.mistake = trade.mistake;
   if (trade.riskRewardRatio !== undefined && trade.riskRewardRatio !== null) apiData.riskRewardRatio = trade.riskRewardRatio;
   if (trade.timeFrame !== undefined && trade.timeFrame !== null && trade.timeFrame !== '') apiData.timeFrame = trade.timeFrame;
+  if (trade.exitBrokerage !== undefined && trade.exitBrokerage !== null) apiData.exitBrokerage = trade.exitBrokerage;
 
   return apiData;
 }
@@ -362,12 +365,14 @@ export async function getOpenTrades(): Promise<Trade[]> {
 export async function exitTrade(
   id: string, 
   exitPrice: number, 
-  exitDate?: string
+  exitDate?: string,
+  exitBrokerage?: number
 ): Promise<TradeResult> {
   try {
     const response = await tradeApiClient.post<{ success: boolean; data: any }>(`/trades/${id}/exit`, {
       exitPrice,
       exitTimestamp: exitDate || new Date().toISOString(),
+      brokerage: exitBrokerage || 0,
     });
     return { success: true, trade: mapApiTrade(response.data.data) };
   } catch (error) {

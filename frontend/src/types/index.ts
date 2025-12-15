@@ -43,6 +43,8 @@ export interface Trade {
   pnlPercentage?: number;
   riskRewardRatio?: number;
   charges?: number;
+  entryBrokerage?: number;
+  exitBrokerage?: number;
   strategy?: string;
   psychology?: string;
   mistake?: string;

@@ -170,8 +170,8 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
         psychology: editTrade.psychology || '',
         mistake: editTrade.mistake || '',
         notes: editTrade.notes || '',
-        brokerage: '',
-        exitBrokerage: '',
+        brokerage: editTrade.entryBrokerage?.toString() || editTrade.charges?.toString() || '',
+        exitBrokerage: editTrade.exitBrokerage?.toString() || '',
       });
     } else {
       setInstrumentType('symbol');
@@ -277,7 +277,8 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
           const exitResult = await exitTrade(
             editTrade.id,
             parseFloat(formData.exitPrice),
-            formData.exitDate ? new Date(formData.exitDate).toISOString() : undefined
+            formData.exitDate ? new Date(formData.exitDate).toISOString() : undefined,
+            parseFloat(formData.exitBrokerage) || 0
           );
           
           if (!exitResult.success) {
@@ -318,7 +319,8 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
           const exitResult = await exitTrade(
             result.trade.id,
             parseFloat(formData.exitPrice),
-            formData.exitDate ? new Date(formData.exitDate).toISOString() : undefined
+            formData.exitDate ? new Date(formData.exitDate).toISOString() : undefined,
+            parseFloat(formData.exitBrokerage) || 0
           );
           
           if (!exitResult.success) {
