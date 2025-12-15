@@ -248,6 +248,7 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
           
           // Brokerage
           brokerage: parseFloat(formData.brokerage) || 0,
+          exitBrokerage: parseFloat(formData.exitBrokerage) || 0,
         };
         
         // Include calculated risk reward ratio

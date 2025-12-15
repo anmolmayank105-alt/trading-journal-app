@@ -326,7 +326,7 @@ export class TradeService {
     // Can't update closed trades entry price/quantity (but allow dates, exit price, notes/tags/strategy/psychology/mistake)
     if (trade.status === 'closed') {
       // Allow ALL fields to be updated for closed trades - user should be able to correct any mistakes
-      const allowedFields = ['notes', 'tags', 'strategy', 'psychology', 'mistake', 'exitPrice', 'exitTimestamp', 'entryTimestamp', 'entryDate', 'exitDate', 'exitTime', 'stopLoss', 'target', 'riskRewardRatio', 'timeFrame', 'symbol', 'exchange', 'segment', 'tradeType', 'quantity', 'entryPrice', 'brokerage'];
+      const allowedFields = ['notes', 'tags', 'strategy', 'psychology', 'mistake', 'exitPrice', 'exitTimestamp', 'entryTimestamp', 'entryDate', 'exitDate', 'exitTime', 'stopLoss', 'target', 'riskRewardRatio', 'timeFrame', 'symbol', 'exchange', 'segment', 'tradeType', 'quantity', 'entryPrice', 'brokerage', 'exitBrokerage'];
       const updateKeys = Object.keys(dto);
       const hasDisallowedFields = updateKeys.some(key => !allowedFields.includes(key));
       
@@ -353,9 +353,13 @@ export class TradeService {
       if (dtoAny.entryPrice !== undefined) updateFields['entry.price'] = dtoAny.entryPrice;
       if (dtoAny.brokerage !== undefined) updateFields['entry.brokerage'] = dtoAny.brokerage;
       
+      // Exit details
       if (dtoAny.exitPrice !== undefined && trade.exit) {
         updateFields['exit.price'] = dtoAny.exitPrice;
         trade.exit.price = dtoAny.exitPrice;
+      }
+      if (dtoAny.exitBrokerage !== undefined && trade.exit) {
+        updateFields['exit.brokerage'] = dtoAny.exitBrokerage;
       }
       
       if (dto.strategy !== undefined) updateFields.strategy = dto.strategy;
@@ -390,24 +394,37 @@ export class TradeService {
           { $set: updateFields }
         );
         
-        // Recalculate PnL if entry/exit price or quantity changed
-        if (dtoAny.entryPrice !== undefined || dtoAny.exitPrice !== undefined || dtoAny.quantity !== undefined) {
+        // Recalculate PnL if entry/exit price, quantity, or brokerage changed
+        if (dtoAny.entryPrice !== undefined || dtoAny.exitPrice !== undefined || dtoAny.quantity !== undefined || dtoAny.brokerage !== undefined || dtoAny.exitBrokerage !== undefined) {
           const updatedTrade = await TradeModel.findById(trade._id);
           if (updatedTrade && updatedTrade.exit) {
             const entryPrice = updatedTrade.entry.price;
             const exitPrice = updatedTrade.exit.price;
             const qty = updatedTrade.entry.quantity;
             const isLong = updatedTrade.tradeType === 'long';
+            const entryBrokerage = updatedTrade.entry.brokerage || 0;
+            const exitBrokerage = updatedTrade.exit.brokerage || 0;
+            const totalBrokerage = entryBrokerage + exitBrokerage;
             
             const grossPnL = isLong 
               ? (exitPrice - entryPrice) * qty 
               : (entryPrice - exitPrice) * qty;
             
-            console.log('🔧 Recalculating PnL:', { entryPrice, exitPrice, qty, isLong, grossPnL });
+            const netPnL = grossPnL - totalBrokerage;
+            const percentageGain = ((exitPrice - entryPrice) / entryPrice) * 100 * (isLong ? 1 : -1);
+            
+            console.log('🔧 Recalculating PnL:', { entryPrice, exitPrice, qty, isLong, grossPnL, entryBrokerage, exitBrokerage, totalBrokerage, netPnL });
             
             await TradeModel.updateOne(
               { _id: trade._id },
-              { $set: { 'pnl.gross': grossPnL } }
+              { $set: { 
+                'pnl.gross': grossPnL,
+                'pnl.net': netPnL,
+                'pnl.brokerage': totalBrokerage,
+                'pnl.charges': totalBrokerage,
+                'pnl.percentageGain': percentageGain,
+                'pnl.isProfit': netPnL > 0
+              } }
             );
           }
         }
