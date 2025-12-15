@@ -401,7 +401,7 @@ export class TradeService {
             const entryPrice = updatedTrade.entry.price;
             const exitPrice = updatedTrade.exit.price;
             const qty = updatedTrade.entry.quantity;
-            const isLong = updatedTrade.tradeType === 'long';
+            const isLong = updatedTrade.position === 'long';
             const entryBrokerage = updatedTrade.entry.brokerage || 0;
             const exitBrokerage = updatedTrade.exit.brokerage || 0;
             const totalBrokerage = entryBrokerage + exitBrokerage;
@@ -413,7 +413,7 @@ export class TradeService {
             const netPnL = grossPnL - totalBrokerage;
             const percentageGain = ((exitPrice - entryPrice) / entryPrice) * 100 * (isLong ? 1 : -1);
             
-            console.log('🔧 Recalculating PnL:', { entryPrice, exitPrice, qty, isLong, grossPnL, entryBrokerage, exitBrokerage, totalBrokerage, netPnL });
+            console.log('🔧 Recalculating PnL:', { entryPrice, exitPrice, qty, isLong, position: updatedTrade.position, grossPnL, entryBrokerage, exitBrokerage, totalBrokerage, netPnL });
             
             await TradeModel.updateOne(
               { _id: trade._id },
