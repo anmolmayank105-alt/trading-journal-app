@@ -58,7 +58,8 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
   const [error, setError] = useState('');
 
   // Check if entry and exit are same day
-  const isSameDay = formData.entryDate && formData.exitDate && formData.entryDate === formData.exitDate;
+  // Show time fields whenever exit date is provided (for intraday trades)
+  const showTimeFields = formData.entryDate && formData.exitDate;
 
   // Calculate P&L and Risk Reward
   const calculations = useMemo(() => {
@@ -235,9 +236,10 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
           // Time frame
           timeFrame: formData.timeFrame || undefined,
           
-          // Dates
+          // Dates and times
           entryDate: formData.entryDate,
           entryTimestamp: new Date(formData.entryDate).toISOString(),
+          entryTime: formData.entryTime || undefined,
           
           // Analysis fields
           strategy: formData.strategy || undefined,
@@ -264,6 +266,9 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
           if (formData.exitDate) {
             updateData.exitDate = formData.exitDate;
             updateData.exitTimestamp = new Date(formData.exitDate).toISOString();
+          }
+          if (formData.exitTime) {
+            updateData.exitTime = formData.exitTime;
           }
         }
         
@@ -797,7 +802,7 @@ const AddTradeModal = React.memo(({ isOpen, onClose, onSave, editTrade }: AddTra
             </div>
 
             {/* Entry/Exit Time - shown when same day trade */}
-            {isSameDay && (
+            {showTimeFields && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">

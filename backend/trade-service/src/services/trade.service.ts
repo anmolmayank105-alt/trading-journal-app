@@ -326,7 +326,7 @@ export class TradeService {
     // Can't update closed trades entry price/quantity (but allow dates, exit price, notes/tags/strategy/psychology/mistake)
     if (trade.status === 'closed') {
       // Allow ALL fields to be updated for closed trades - user should be able to correct any mistakes
-      const allowedFields = ['notes', 'tags', 'strategy', 'psychology', 'mistake', 'exitPrice', 'exitTimestamp', 'entryTimestamp', 'entryDate', 'exitDate', 'exitTime', 'stopLoss', 'target', 'riskRewardRatio', 'timeFrame', 'symbol', 'exchange', 'segment', 'tradeType', 'quantity', 'entryPrice', 'brokerage', 'exitBrokerage'];
+      const allowedFields = ['notes', 'tags', 'strategy', 'psychology', 'mistake', 'exitPrice', 'exitTimestamp', 'entryTimestamp', 'entryDate', 'exitDate', 'entryTime', 'exitTime', 'stopLoss', 'target', 'riskRewardRatio', 'timeFrame', 'symbol', 'exchange', 'segment', 'tradeType', 'quantity', 'entryPrice', 'brokerage', 'exitBrokerage'];
       const updateKeys = Object.keys(dto);
       const hasDisallowedFields = updateKeys.some(key => !allowedFields.includes(key));
       
@@ -371,6 +371,8 @@ export class TradeService {
       if (dto.target !== undefined) updateFields.target = dto.target;
       if (dtoAny.riskRewardRatio !== undefined) updateFields.riskRewardRatio = dtoAny.riskRewardRatio;
       if (dtoAny.timeFrame !== undefined) updateFields.timeFrame = dtoAny.timeFrame;
+      if (dtoAny.entryTime !== undefined) updateFields.entryTime = dtoAny.entryTime;
+      if (dtoAny.exitTime !== undefined) updateFields.exitTime = dtoAny.exitTime;
       
       // Handle date updates
       if (dto.entryTimestamp || dtoAny.entryDate) {
@@ -378,8 +380,8 @@ export class TradeService {
         updateFields['entry.timestamp'] = new Date(entryDate);
       }
       
-      if (dtoAny.exitTimestamp || dtoAny.exitDate || dtoAny.exitTime) {
-        const exitDate = dtoAny.exitTimestamp || dtoAny.exitDate || dtoAny.exitTime;
+      if (dtoAny.exitTimestamp || dtoAny.exitDate) {
+        const exitDate = dtoAny.exitTimestamp || dtoAny.exitDate;
         if (trade.exit) {
           updateFields['exit.timestamp'] = new Date(exitDate);
         }

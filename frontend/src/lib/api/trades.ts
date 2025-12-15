@@ -158,7 +158,9 @@ function mapTradeToApi(trade: Partial<Trade> & { brokerage?: number }): any {
   if (trade.strategy !== undefined && trade.strategy !== null && trade.strategy !== '') apiData.strategy = trade.strategy;
   if (trade.notes !== undefined && trade.notes !== null && trade.notes !== '') apiData.notes = trade.notes;
   if (trade.exitPrice !== undefined && trade.exitPrice !== null) apiData.exitPrice = trade.exitPrice;
-  if (trade.exitTime !== undefined && trade.exitTime !== null) apiData.exitTimestamp = trade.exitTime;
+  if (trade.exitDate !== undefined && trade.exitDate !== null) apiData.exitTimestamp = trade.exitDate;
+  if (trade.entryTime !== undefined && trade.entryTime !== null && trade.entryTime !== '') apiData.entryTime = trade.entryTime;
+  if (trade.exitTime !== undefined && trade.exitTime !== null && trade.exitTime !== '') apiData.exitTime = trade.exitTime;
   if (trade.status !== undefined && trade.status !== null) apiData.status = trade.status;
   if (trade.psychology !== undefined && trade.psychology !== null && trade.psychology !== '') apiData.psychology = trade.psychology;
   if (trade.mistake !== undefined && trade.mistake !== null && trade.mistake !== '') apiData.mistake = trade.mistake;

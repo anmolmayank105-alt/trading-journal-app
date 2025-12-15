@@ -52,6 +52,9 @@ export interface TradeDocument extends Document {
   stopLoss?: number;
   target?: number;
   riskRewardRatio?: number;
+  entryTime?: string;
+  exitTime?: string;
+  timeFrame?: string;
   strategy?: string;
   psychology?: string;
   mistake?: string;
@@ -189,6 +192,11 @@ const tradeSchema = new Schema<TradeDocument, TradeModel>(
     target: { type: Number },
     riskRewardRatio: { type: Number },
     
+    // Time fields (HH:mm format for intraday display)
+    entryTime: { type: String, maxlength: 10 },
+    exitTime: { type: String, maxlength: 10 },
+    timeFrame: { type: String, maxlength: 20 },
+    
     // Metadata
     strategy: { type: String, maxlength: 100 },
     psychology: { type: String, maxlength: 200 },
@@ -272,15 +280,18 @@ tradeSchema.pre('save', function(next) {
     const calculatedPnl = this.calculatePnL();
     console.log('Calculated PnL:', JSON.stringify(calculatedPnl, null, 2));
     
-    // Only update gross PnL (other fields don't exist in schema)
+    // Update ALL P&L fields including net and charges
     this.pnl.gross = calculatedPnl.gross;
+    this.pnl.net = calculatedPnl.net;
+    this.pnl.charges = calculatedPnl.charges;
     this.pnl.brokerage = calculatedPnl.brokerage || 0;
+    this.pnl.percentageGain = calculatedPnl.percentageGain;
     this.pnl.isProfit = calculatedPnl.isProfit;
     if (calculatedPnl.taxes) {
       this.pnl.taxes = calculatedPnl.taxes;
     }
     
-    console.log('After assignment - this.pnl.gross:', this.pnl.gross);
+    console.log('After assignment - this.pnl:', JSON.stringify(this.pnl, null, 2));
   }
   
   // Calculate holding period
