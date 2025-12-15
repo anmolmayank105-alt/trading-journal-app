@@ -777,7 +777,7 @@ export default function TradeDetailPage() {
     }
     
     // Use the backend-calculated P&L which already includes brokerage
-    if (trade.pnl !== undefined && trade.pnl !== 0) {
+    if (trade.pnl !== undefined && trade.pnl !== null && trade.pnl !== 0) {
       const entry = trade.entryPrice;
       const exit = trade.exitPrice;
       const pnlPercentage = trade.tradeType === 'long' 
