@@ -8,7 +8,18 @@ import { authenticate } from '../middleware';
 
 const router = Router();
 
-// All routes require authentication
+// ============= Health Check =============
+// Public endpoint for keep-alive pings (no auth required)
+router.get('/health', (_req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'trade-service',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+// All routes below require authentication
 router.use(authenticate as any);
 
 // Trade CRUD routes

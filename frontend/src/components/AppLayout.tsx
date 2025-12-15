@@ -200,7 +200,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 ${styles.sidebar} backdrop-blur-xl border-r
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 md:w-72 ${styles.sidebar} backdrop-blur-xl border-r
           transform transition-transform duration-200 ease-out lg:transform-none
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
@@ -237,23 +237,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-h-screen lg:ml-0">
+      <main className="flex-1 min-h-screen lg:ml-0 overflow-x-hidden">
         {/* Top bar for mobile */}
-        <div className={`lg:hidden sticky top-0 z-30 flex items-center gap-4 px-4 h-16 ${styles.mobileBar} backdrop-blur-xl border-b`}>
+        <div className={`lg:hidden sticky top-0 z-30 flex items-center gap-4 px-4 h-14 ${styles.mobileBar} backdrop-blur-xl border-b`}>
           <button
             onClick={toggleSidebar}
             className={`p-2 rounded-lg ${styles.menuBtn}`}
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5" />
           </button>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-md">
-            <TrendingUp className="w-4 h-4 text-white" />
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-md">
+            <TrendingUp className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className={`font-semibold ${styles.gradientText}`}>Trading Analytics</span>
+          <span className={`font-semibold text-sm ${styles.gradientText}`}>Trading Analytics</span>
         </div>
 
         {/* Page content */}
-        <div className="p-4 lg:p-8">
+        <div className="p-3 sm:p-4 lg:p-8 max-w-full overflow-x-hidden">
           {children}
         </div>
       </main>

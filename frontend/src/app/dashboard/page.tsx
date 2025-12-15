@@ -185,21 +185,21 @@ const StatCard = React.memo(({
   gradient: string;
   isDark: boolean;
 }) => (
-  <div className="stat-card">
+  <div className="stat-card min-w-[140px] sm:min-w-0">
     <div className="flex items-start justify-between">
-      <div className={`p-3 rounded-xl ${gradient}`}>
-        <Icon className="w-6 h-6 text-white" />
+      <div className={`p-2 sm:p-3 rounded-xl ${gradient}`}>
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
       </div>
       {change && (
-        <div className={`flex items-center gap-1 text-sm ${positive ? 'text-emerald-500' : 'text-red-500'}`}>
-          {positive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+        <div className={`flex items-center gap-1 text-xs sm:text-sm ${positive ? 'text-emerald-500' : 'text-red-500'}`}>
+          {positive ? <ArrowUpRight className="w-3 h-3 sm:w-4 sm:h-4" /> : <ArrowDownRight className="w-3 h-3 sm:w-4 sm:h-4" />}
           {change}
         </div>
       )}
     </div>
-    <div className="mt-4">
-      <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+    <div className="mt-3 sm:mt-4">
+      <p className={`text-xs sm:text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
+      <p className={`text-lg sm:text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
     </div>
   </div>
 ));
@@ -369,26 +369,27 @@ export default function DashboardPage() {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-2 sm:gap-4">
           <div>
-            <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <h1 className={`text-xl sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Welcome back, {user?.name?.split(' ')[0]}! 👋
             </h1>
-            <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Here&apos;s your trading performance overview</p>
+            <p className={`mt-1 text-sm sm:text-base ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Here&apos;s your trading performance overview</p>
           </div>
-          <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <div className={`flex items-center gap-2 text-xs sm:text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             <Calendar className="w-4 h-4" />
             {new Date().toLocaleDateString('en-IN', { 
-              weekday: 'long', 
+              weekday: 'short', 
               year: 'numeric', 
-              month: 'long', 
+              month: 'short', 
               day: 'numeric' 
             })}
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Stats Grid - Horizontal scroll on mobile */}
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible">
+          <div className="flex gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-5 sm:gap-4 min-w-max sm:min-w-0">
           <StatCard
             icon={DollarSign}
             label="Total P&L"
@@ -430,21 +431,23 @@ export default function DashboardPage() {
             isDark={isDark}
           />
         </div>
+        </div>
 
         {/* Charts Row */}
         <DashboardCharts pnlData={chartData} weeklyPnL={weeklyPnL} winLossData={winLossData} />
 
         {/* Day-wise Win Rate Analysis */}
         <div className="card">
-          <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Performance by Day of Week</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          <h3 className={`text-base sm:text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Performance by Day of Week</h3>
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex gap-2 sm:grid sm:grid-cols-4 lg:grid-cols-7 sm:gap-4 min-w-max sm:min-w-0">
             {dayWiseWinRate.map(({ day, winRate, wins, losses, total }) => {
               const isPositive = winRate >= 50;
               return (
-                <div key={day} className={`card ${isDark ? 'bg-slate-800/50' : 'bg-slate-100'}`}>
+                <div key={day} className={`card min-w-[80px] sm:min-w-0 p-3 sm:p-4 ${isDark ? 'bg-slate-800/50' : 'bg-slate-100'}`}>
                   <div className="text-center">
-                    <div className={`text-sm font-medium mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{day}</div>
-                    <div className={`text-2xl font-bold mb-2 ${
+                    <div className={`text-xs sm:text-sm font-medium mb-1 sm:mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{day}</div>
+                    <div className={`text-lg sm:text-2xl font-bold mb-1 sm:mb-2 ${
                       total === 0 ? (isDark ? 'text-slate-500' : 'text-slate-400') :
                       isPositive ? 'text-emerald-400' : 'text-red-400'
                     }`}>
@@ -452,15 +455,15 @@ export default function DashboardPage() {
                     </div>
                     {total > 0 && (
                       <>
-                        <div className={`w-full rounded-full h-2 mb-2 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}>
+                        <div className={`w-full rounded-full h-1.5 sm:h-2 mb-1 sm:mb-2 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}>
                           <div
-                            className={`h-2 rounded-full ${
+                            className={`h-1.5 sm:h-2 rounded-full ${
                               isPositive ? 'bg-emerald-500' : 'bg-red-500'
                             }`}
                             style={{ width: `${winRate}%` }}
                           />
                         </div>
-                        <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
+                        <div className={`text-[10px] sm:text-xs ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
                           {wins}W / {losses}L
                         </div>
                       </>
@@ -469,21 +472,22 @@ export default function DashboardPage() {
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
 
         {/* Recent Trades */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Recent Trades</h3>
-            <a href="/trades" className={`text-sm transition-colors ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-500'}`}>
+            <h3 className={`text-base sm:text-lg font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Recent Trades</h3>
+            <a href="/trades" className={`text-xs sm:text-sm transition-colors ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-500'}`}>
               View all →
             </a>
           </div>
           
           {recentTrades.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              <table className="w-full min-w-[500px]">
                 <thead>
                   <tr className={`text-left text-sm border-b ${isDark ? 'text-slate-400 border-white/5' : 'text-slate-500 border-slate-200'}`}>
                     <th className="px-4 py-3 font-medium">Symbol</th>

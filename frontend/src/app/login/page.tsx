@@ -35,25 +35,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-950 via-indigo-950/30 to-slate-950">
-      {/* Background effects */}
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:py-12 bg-gradient-to-br from-slate-950 via-indigo-950/30 to-slate-950">
+      {/* Background effects - smaller on mobile */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-purple-500/20 rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 mb-4 animate-pulse-glow">
-            <TrendingUp className="w-8 h-8 text-white" />
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 mb-4 animate-pulse-glow">
+            <TrendingUp className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold gradient-text">Trading Analytics</h1>
-          <p className="text-slate-400 mt-2">Welcome back! Sign in to continue</p>
+          <h1 className="text-2xl sm:text-3xl font-bold gradient-text">Trading Analytics</h1>
+          <p className="text-slate-400 mt-2 text-sm sm:text-base">Welcome back! Sign in to continue</p>
         </div>
 
         {/* Login Form */}
-        <div className="glass rounded-3xl p-8">
+        <div className="glass rounded-2xl sm:rounded-3xl p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
@@ -98,7 +98,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <label className="flex items-center text-slate-400">
                 <input type="checkbox" className="mr-2 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500" />
                 Remember me
@@ -111,7 +111,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               {loading ? (
                 <>
@@ -124,7 +124,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-slate-400">
+          <div className="mt-6 text-center text-slate-400 text-sm sm:text-base">
             Don&apos;t have an account?{' '}
             <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
               Sign up

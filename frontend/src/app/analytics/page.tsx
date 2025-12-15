@@ -82,20 +82,20 @@ const StatCard = React.memo(({
   positive?: boolean;
   gradient: string;
 }) => (
-  <div className="stat-card">
+  <div className="stat-card min-w-[140px] sm:min-w-0">
     <div className="flex items-start justify-between">
-      <div className={`p-3 rounded-xl ${gradient}`}>
-        <Icon className="w-6 h-6 text-white" />
+      <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${gradient}`}>
+        <Icon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
       </div>
     </div>
-    <div className="mt-4">
-      <p className="text-sm text-slate-400">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${
+    <div className="mt-2 sm:mt-4">
+      <p className="text-xs sm:text-sm text-slate-400">{label}</p>
+      <p className={`text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 ${
         positive !== undefined 
           ? positive ? 'text-emerald-400' : 'text-red-400'
           : 'text-white'
       }`}>{value}</p>
-      {subValue && <p className="text-sm text-slate-400 mt-1">{subValue}</p>}
+      {subValue && <p className="text-xs sm:text-sm text-slate-400 mt-0.5 sm:mt-1">{subValue}</p>}
     </div>
   </div>
 ));
@@ -399,19 +399,19 @@ export default function AnalyticsPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">Analytics</h1>
-            <p className="text-slate-400 mt-1">Deep insights into your trading performance</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Analytics</h1>
+            <p className="text-slate-400 mt-0.5 sm:mt-1 text-sm sm:text-base">Deep insights into your trading performance</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2">
             {(['1W', '1M', '3M', 'ALL'] as const).map(tf => (
               <button
                 key={tf}
                 onClick={() => handleTimeframeChange(tf)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   timeframe === tf
                     ? 'bg-indigo-600 text-white'
                     : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
@@ -424,36 +424,38 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            icon={TrendingUp}
-            label="Total P&L"
-            value={`₹${(filteredStats.totalPnl || 0).toLocaleString()}`}
-            positive={filteredStats.totalPnl >= 0}
-            gradient="bg-gradient-to-br from-indigo-600 to-purple-600"
-          />
-          <StatCard
-            icon={Target}
-            label="Win Rate"
-            value={`${(filteredStats.winRate || 0).toFixed(1)}%`}
-            subValue={`${filteredStats.winningTrades || 0}W / ${filteredStats.losingTrades || 0}L`}
-            positive={(filteredStats.winRate || 0) >= 50}
-            gradient="bg-gradient-to-br from-emerald-600 to-teal-600"
-          />
-          <StatCard
-            icon={Activity}
-            label="Avg Win"
-            value={`₹${(filteredStats.avgWin || 0).toLocaleString()}`}
-            positive={true}
-            gradient="bg-gradient-to-br from-green-600 to-emerald-600"
-          />
-          <StatCard
-            icon={TrendingDown}
-            label="Avg Loss"
-            value={`₹${(filteredStats.avgLoss || 0).toLocaleString()}`}
-            positive={false}
-            gradient="bg-gradient-to-br from-red-600 to-pink-600"
-          />
+        <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+          <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 min-w-max sm:min-w-0">
+            <StatCard
+              icon={TrendingUp}
+              label="Total P&L"
+              value={`₹${(filteredStats.totalPnl || 0).toLocaleString()}`}
+              positive={filteredStats.totalPnl >= 0}
+              gradient="bg-gradient-to-br from-indigo-600 to-purple-600"
+            />
+            <StatCard
+              icon={Target}
+              label="Win Rate"
+              value={`${(filteredStats.winRate || 0).toFixed(1)}%`}
+              subValue={`${filteredStats.winningTrades || 0}W / ${filteredStats.losingTrades || 0}L`}
+              positive={(filteredStats.winRate || 0) >= 50}
+              gradient="bg-gradient-to-br from-emerald-600 to-teal-600"
+            />
+            <StatCard
+              icon={Activity}
+              label="Avg Win"
+              value={`₹${(filteredStats.avgWin || 0).toLocaleString()}`}
+              positive={true}
+              gradient="bg-gradient-to-br from-green-600 to-emerald-600"
+            />
+            <StatCard
+              icon={TrendingDown}
+              label="Avg Loss"
+              value={`₹${(filteredStats.avgLoss || 0).toLocaleString()}`}
+              positive={false}
+              gradient="bg-gradient-to-br from-red-600 to-pink-600"
+            />
+          </div>
         </div>
 
         {/* Charts */}
@@ -467,32 +469,32 @@ export default function AnalyticsPage() {
 
         {/* Top and Worst Performers */}
         <div className="card">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">📊 Performance Overview</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-bold text-white">📊 Performance Overview</h2>
             <button
               onClick={() => router.push('/analytics/performance')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-white"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-white text-sm sm:text-base"
             >
-              <span className="text-sm font-medium">View All</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="text-xs sm:text-sm font-medium">View All</span>
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Top Performing Symbols */}
-            <div className="bg-white/5 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-white mb-4">🏆 Top Performing Symbols</h3>
+            <div className="bg-white/5 rounded-lg p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">🏆 Top Performing Symbols</h3>
             {symbolAnalysis.filter(s => s.pnl > 0 && !isIndexSymbol(s.symbol)).length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <table className="w-full min-w-[400px] sm:min-w-0">
                   <thead>
-                    <tr className="text-left text-sm text-slate-400 border-b border-white/5">
-                      <th className="px-4 py-3 font-medium">Symbol</th>
-                      <th className="px-4 py-3 font-medium">Trades</th>
-                      <th className="px-4 py-3 font-medium">Win Rate</th>
-                      <th className="px-4 py-3 font-medium">Total P&L</th>
+                    <tr className="text-left text-xs sm:text-sm text-slate-400 border-b border-white/5">
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">Symbol</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">Trades</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">Win Rate</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">Total P&L</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -505,22 +507,22 @@ export default function AnalyticsPage() {
                           onClick={() => router.push(`/trades?symbol=${encodeURIComponent(symbol.symbol)}`)}
                           className="table-row cursor-pointer hover:bg-white/5"
                         >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-green-600 flex items-center justify-center text-sm font-bold">
+                          <td className="px-3 sm:px-4 py-2 sm:py-3">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-green-600 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0">
                                 {index + 1}
                               </div>
-                              <span className="font-medium text-white">{symbol.symbol}</span>
+                              <span className="font-medium text-white text-xs sm:text-sm truncate">{symbol.symbol}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-slate-300">{symbol.trades}</td>
-                          <td className="px-4 py-3">
-                            <span className={symbol.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}>
+                          <td className="px-3 sm:px-4 py-2 sm:py-3 text-slate-300 text-xs sm:text-sm">{symbol.trades}</td>
+                          <td className="px-3 sm:px-4 py-2 sm:py-3">
+                            <span className={`text-xs sm:text-sm ${symbol.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {symbol.winRate.toFixed(1)}%
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="text-emerald-400 font-semibold">
+                          <td className="px-3 sm:px-4 py-2 sm:py-3">
+                            <span className="text-emerald-400 font-semibold text-xs sm:text-sm">
                               +₹{symbol.pnl.toLocaleString()}
                             </span>
                           </td>
@@ -530,25 +532,25 @@ export default function AnalyticsPage() {
                 </table>
               </div>
             ) : (
-              <div className="py-12 text-center text-slate-400">
-                <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No symbol trades yet</p>
+              <div className="py-8 sm:py-12 text-center text-slate-400">
+                <BarChart3 className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm sm:text-base">No symbol trades yet</p>
               </div>
             )}
           </div>
 
           {/* Top Performing Indices */}
-          <div className="bg-white/5 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-white mb-4">📈 Top Performing Indices</h3>
+          <div className="bg-white/5 rounded-lg p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">📈 Top Performing Indices</h3>
             {aggregatedIndexAnalysis.filter(s => s.pnl > 0).length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <table className="w-full min-w-[400px] sm:min-w-0">
                   <thead>
-                    <tr className="text-left text-sm text-slate-400 border-b border-white/5">
-                      <th className="px-4 py-3 font-medium">Index</th>
-                      <th className="px-4 py-3 font-medium">Trades</th>
-                      <th className="px-4 py-3 font-medium">Win Rate</th>
-                      <th className="px-4 py-3 font-medium">Total P&L</th>
+                    <tr className="text-left text-xs sm:text-sm text-slate-400 border-b border-white/5">
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">Index</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">Trades</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">Win Rate</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">Total P&L</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -561,22 +563,22 @@ export default function AnalyticsPage() {
                           onClick={() => router.push(`/trades?symbol=${encodeURIComponent(symbol.symbol)}`)}
                           className="table-row cursor-pointer hover:bg-white/5"
                         >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-sm font-bold">
+                          <td className="px-3 sm:px-4 py-2 sm:py-3">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0">
                                 {index + 1}
                               </div>
-                              <span className="font-medium text-white">{symbol.symbol}</span>
+                              <span className="font-medium text-white text-xs sm:text-sm truncate">{symbol.symbol}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-slate-300">{symbol.trades}</td>
-                          <td className="px-4 py-3">
-                            <span className={symbol.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}>
+                          <td className="px-3 sm:px-4 py-2 sm:py-3 text-slate-300 text-xs sm:text-sm">{symbol.trades}</td>
+                          <td className="px-3 sm:px-4 py-2 sm:py-3">
+                            <span className={`text-xs sm:text-sm ${symbol.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {symbol.winRate.toFixed(1)}%
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="text-emerald-400 font-semibold">
+                          <td className="px-3 sm:px-4 py-2 sm:py-3">
+                            <span className="text-emerald-400 font-semibold text-xs sm:text-sm">
                               +₹{symbol.pnl.toLocaleString()}
                             </span>
                           </td>
@@ -586,15 +588,15 @@ export default function AnalyticsPage() {
                 </table>
               </div>
             ) : (
-              <div className="py-12 text-center text-slate-400">
-                <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No index trades yet</p>
+              <div className="py-8 sm:py-12 text-center text-slate-400">
+                <BarChart3 className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm sm:text-base">No index trades yet</p>
               </div>
             )}
           </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
           {/* Worst Performing Symbols */}
           <div className="bg-white/5 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-white mb-4">📉 Worst Performing Symbols</h3>

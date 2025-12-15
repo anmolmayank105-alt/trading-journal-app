@@ -8,6 +8,17 @@ import { authenticate, authRateLimiter, registerRateLimiter } from '../middlewar
 
 const router = Router();
 
+// ============= Health Check =============
+// Public endpoint for keep-alive pings (no auth required)
+router.get('/health', (_req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'auth-service',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 // ============= Public Routes =============
 
 // Register new user
