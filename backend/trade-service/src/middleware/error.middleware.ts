@@ -8,7 +8,7 @@ import {
   ValidationError,
   NotFoundError,
   logger,
-} from '../../../shared/dist/utils';
+} from '@stock-tracker/shared/utils';
 import { ZodError } from 'zod';
 
 export const errorHandler = (

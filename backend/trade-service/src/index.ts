@@ -14,7 +14,7 @@ dotenv.config();
 import { connectDatabase } from './config';
 import { tradeRoutes } from './routes';
 import { errorHandler, notFoundHandler } from './middleware';
-import { logger } from '../../shared/dist/utils';
+import { logger } from '@stock-tracker/shared/utils';
 
 const app = express();
 const PORT = process.env.PORT || 3003;

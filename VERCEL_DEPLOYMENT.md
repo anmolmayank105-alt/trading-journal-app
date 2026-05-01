@@ -11,9 +11,8 @@
 Deploy your backend services to a cloud platform (Railway, Render, etc.):
 - auth-service
 - trade-service
-- analytics-service
-- market-data-service
-- broker-service
+
+For the core app, only `auth-service` and `trade-service` are required.
 
 Note the public URLs for each service.
 
@@ -21,7 +20,9 @@ Note the public URLs for each service.
 Add these environment variables in your Vercel project settings:
 
 ```
-NEXT_PUBLIC_API_URL=https://your-backend-url.com
+NEXT_PUBLIC_API_URL=https://<your-auth-service-url>/api/v1
+NEXT_PUBLIC_TRADE_API_URL=https://<your-trade-service-url>/api/v1
+NEXT_PUBLIC_USE_LOCAL_STORAGE=false
 NODE_ENV=production
 ```
 

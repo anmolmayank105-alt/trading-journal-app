@@ -13,14 +13,14 @@ import {
   TradeStatus,
   DEFAULT_PNL,
   DEFAULT_TAXES,
-} from '../../../shared/dist/types';
+} from '@stock-tracker/shared/types';
 import {
   NotFoundError,
   InvalidInputError,
   TradeAlreadyClosedError,
   InvalidTradeStateError,
   logger,
-} from '../../../shared/dist/utils';
+} from '@stock-tracker/shared/utils';
 
 // ============= Cache Configuration =============
 // TTL: 5 minutes for trade data, check every 60 seconds

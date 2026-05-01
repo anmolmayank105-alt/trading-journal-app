@@ -1,0 +1,38 @@
+services:
+  # Auth Service (Render)
+  - type: web
+    name: auth-service
+    env: node
+    buildCommand: npm install && npm run build:auth
+    startCommand: node backend/auth-service/dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: trading_analytics
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+
+  # Trade Service (Render)
+  - type: web
+    name: trade-service
+    env: node
+    buildCommand: npm install && npm run build:trade
+    startCommand: node backend/trade-service/dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: trading_analytics
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

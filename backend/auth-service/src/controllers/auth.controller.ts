@@ -10,8 +10,8 @@ import {
   validate,
   schemas,
   verifyPassword,
-} from '../../../shared/dist/utils';
-import { AuthenticatedRequest } from '../../../shared/dist/types';
+} from '@stock-tracker/shared/utils';
+import { AuthenticatedRequest } from '@stock-tracker/shared/types';
 
 export class AuthController {
   

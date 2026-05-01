@@ -5,13 +5,32 @@
   "private": true,
   "scripts": {
     "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
+    "build": "npm run build:frontend",
+    "build:all": "npm run build:backend && npm run build:frontend",
+    "build:backend": "npm run build:shared && npm run build:services",
+    "build:shared": "cd backend/shared && npm run build",
+    "build:services": "cd backend/auth-service && npm run build && cd ../broker-service && npm run build && cd ../trade-service && npm run build && cd ../market-data-service && npm run build && cd ../analytics-service && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:auth": "npm run build:shared && cd backend/auth-service && npm run build",
+    "build:broker": "npm run build:shared && cd backend/broker-service && npm run build",
+    "build:trade": "npm run build:shared && cd backend/trade-service && npm run build",
+    "build:market": "npm run build:shared && cd backend/market-data-service && npm run build",
+    "build:analytics": "npm run build:shared && cd backend/analytics-service && npm run build",
     "start": "cd frontend && npm start"
   },
   "workspaces": [
-    "frontend"
+    "frontend",
+    "backend/shared",
+    "backend/auth-service",
+    "backend/broker-service",
+    "backend/trade-service",
+    "backend/market-data-service",
+    "backend/analytics-service"
   ],
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.0.1"
   }
 }

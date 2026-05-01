@@ -3,7 +3,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../../../shared/dist/utils';
+import { logger } from '@stock-tracker/shared/utils';
 
 interface RateLimitOptions {
   windowMs: number;

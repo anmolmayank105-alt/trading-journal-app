@@ -15,7 +15,7 @@ import {
   TokenPayload,
   UserResponseDTO,
   ChangePasswordDTO,
-} from '../../../shared/dist/types';
+} from '@stock-tracker/shared/types';
 import {
   InvalidCredentialsError,
   AlreadyExistsError,
@@ -27,7 +27,7 @@ import {
   generateToken,
   verifyPassword,
   logger,
-} from '../../../shared/dist/utils';
+} from '@stock-tracker/shared/utils';
 
 // ============= Cache Configuration =============
 // Session cache: 15 min TTL (match access token expiry)

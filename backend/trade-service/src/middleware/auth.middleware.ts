@@ -5,8 +5,8 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../config';
-import { AuthenticatedRequest, TokenPayload } from '../../../shared/dist/types';
-import { logger } from '../../../shared/dist/utils';
+import { AuthenticatedRequest, TokenPayload } from '@stock-tracker/shared/types';
+import { logger } from '@stock-tracker/shared/utils';
 
 export const authenticate = (
   req: AuthenticatedRequest,

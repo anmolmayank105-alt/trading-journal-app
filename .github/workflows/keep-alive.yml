@@ -1,0 +1,73 @@
+# GitHub Actions Workflow to Keep Services Alive
+# This prevents Render.com free tier services from sleeping after 15 minutes
+
+name: Keep Backend Services Alive
+
+on:
+  schedule:
+    # Run every 10 minutes during active hours (12 PM - 12 AM IST)
+    # Cron is in UTC, so we convert IST (UTC+5:30) to UTC
+    # IST 12:00 PM = UTC 6:30 AM
+    # IST 11:50 PM = UTC 6:20 PM
+    - cron: '*/10 6-18 * * *'  # Every 10 minutes from 6:30 AM to 6:30 PM UTC
+  
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  ping-services:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      
+      - name: Ping Keep-Alive Endpoint
+        run: |
+          echo "🏓 Pinging keep-alive endpoint..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" https://your-frontend.vercel.app/api/keep-alive)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Keep-alive successful (HTTP $HTTP_CODE)"
+            echo "$BODY"
+          else
+            echo "⚠️ Keep-alive failed (HTTP $HTTP_CODE)"
+            echo "$BODY"
+          fi
+      
+      - name: Ping Auth Service
+        run: |
+          echo "🔐 Pinging auth service..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" https://authentication-fwdq.onrender.com/health)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Auth service is alive (HTTP $HTTP_CODE)"
+          else
+            echo "❌ Auth service may be down (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+      
+      - name: Ping Trade Service
+        run: |
+          echo "📊 Pinging trade service..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" https://trade-service-60gz.onrender.com/api/v1/trades/health)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Trade service is alive (HTTP $HTTP_CODE)"
+          else
+            echo "❌ Trade service may be down (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📅 Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "🕐 IST Time: $(TZ=Asia/Kolkata date +'%Y-%m-%d %H:%M:%S IST')"
+          echo "🎯 Services pinged to prevent cold starts"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

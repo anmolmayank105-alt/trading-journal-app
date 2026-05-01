@@ -5,8 +5,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
 import { tradeService, TradeQueryOptions } from '../services';
-import { validate, schemas, logger } from '../../../shared/dist/utils';
-import { AuthenticatedRequest } from '../../../shared/dist/types';
+import { validate, schemas, logger } from '@stock-tracker/shared/utils';
+import { AuthenticatedRequest } from '@stock-tracker/shared/types';
 
 // Helper to validate ObjectId
 function isValidObjectId(id: string): boolean {

@@ -4,8 +4,8 @@
 
 import { Response, NextFunction } from 'express';
 import { authService } from '../services';
-import { AuthenticatedRequest, UserRole } from '../../../shared/dist/types';
-import { logger } from '../../../shared/dist/utils';
+import { AuthenticatedRequest, UserRole } from '@stock-tracker/shared/types';
+import { logger } from '@stock-tracker/shared/utils';
 
 // ============= Authenticate =============
 
@@ -74,7 +74,7 @@ export const requireRole = (...roles: UserRole[]) => {
       return;
     }
     
-    if (!req.user.roles.some(r => roles.includes(r))) {
+    if (!req.user.roles.some((r: UserRole) => roles.includes(r))) {
       res.status(403).json({
         success: false,
         error: { code: 'AUTH_003', message: 'Insufficient permissions' },

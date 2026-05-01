@@ -2,10 +2,12 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken, clearTokens, parseApiError } from './client';
 import { Trade, TradeFilter } from '@/types';
+import * as localTrades from '../storage/trades';
 
 // Create separate axios instance for trade service
 const TRADE_API_URL = process.env.NEXT_PUBLIC_TRADE_API_URL || 'http://localhost:3003/api/v1';
 const AUTH_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const USE_LOCAL_STORAGE = process.env.NEXT_PUBLIC_USE_LOCAL_STORAGE === 'true';
 
 const tradeApiClient = axios.create({
   baseURL: TRADE_API_URL,
@@ -175,6 +177,10 @@ function mapTradeToApi(trade: Partial<Trade> & { brokerage?: number }): any {
 
 // Get user's trades
 export async function getTrades(filters?: TradeFilter): Promise<Trade[]> {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.getTrades(filters);
+  }
+
   try {
     const params: Record<string, string> = {};
     if (filters?.symbol) params.symbol = filters.symbol;
@@ -189,18 +195,22 @@ export async function getTrades(filters?: TradeFilter): Promise<Trade[]> {
     return response.data.data.map(mapApiTrade);
   } catch (error) {
     console.error('Failed to fetch trades:', parseApiError(error).message);
-    throw new Error('Backend is not available. Please start the trade service.');
+    return localTrades.getTrades(filters);
   }
 }
 
 // Get single trade
 export async function getTradeById(id: string): Promise<Trade | null> {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.getTradeById(id);
+  }
+
   try {
     const response = await tradeApiClient.get<{ success: boolean; data: any }>(`/trades/${id}`);
     return mapApiTrade(response.data.data);
   } catch (error) {
     console.error('Failed to fetch trade:', parseApiError(error).message);
-    return null;
+    return localTrades.getTradeById(id);
   }
 }
 
@@ -208,6 +218,10 @@ export async function getTradeById(id: string): Promise<Trade | null> {
 export async function createTrade(
   tradeData: Omit<Trade, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
 ): Promise<TradeResult> {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.createTrade(tradeData);
+  }
+
   try {
     const apiData = mapTradeToApi(tradeData);
     console.log('🚀 Creating trade with data:', apiData);
@@ -219,48 +233,64 @@ export async function createTrade(
     console.error('❌ Error response:', error.response?.data);
     const errMsg = parseApiError(error).message;
     console.error('Failed to create trade:', errMsg);
-    return { success: false, error: errMsg };
+    return localTrades.createTrade(tradeData);
   }
 }
 
 // Update trade
 export async function updateTrade(id: string, updates: Partial<Trade>): Promise<TradeResult> {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.updateTrade(id, updates);
+  }
+
   try {
     const response = await tradeApiClient.put<{ success: boolean; data: any }>(`/trades/${id}`, mapTradeToApi(updates));
     return { success: true, trade: mapApiTrade(response.data.data) };
   } catch (error) {
     const errMsg = parseApiError(error).message;
     console.error('Failed to update trade:', errMsg);
-    return { success: false, error: errMsg };
+    return localTrades.updateTrade(id, updates);
   }
 }
 
 // Delete trade
 export async function deleteTrade(id: string): Promise<TradeResult> {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.deleteTrade(id);
+  }
+
   try {
     await tradeApiClient.delete(`/trades/${id}`);
     return { success: true };
   } catch (error) {
     const errMsg = parseApiError(error).message;
     console.error('Failed to delete trade:', errMsg);
-    return { success: false, error: errMsg };
+    return localTrades.deleteTrade(id);
   }
 }
 
 // Bulk delete trades
 export async function bulkDeleteTrades(ids: string[]): Promise<TradeResult> {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.bulkDeleteTrades(ids);
+  }
+
   try {
     await Promise.all(ids.map(id => tradeApiClient.delete(`/trades/${id}`)));
     return { success: true };
   } catch (error) {
     const errMsg = parseApiError(error).message;
     console.error('Failed to bulk delete trades:', errMsg);
-    return { success: false, error: errMsg };
+    return localTrades.bulkDeleteTrades(ids);
   }
 }
 
 // Get trade statistics
 export async function getTradeStats() {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.getTradeStats();
+  }
+
   try {
     const response = await tradeApiClient.get<{ success: boolean; data: any }>('/trades/summary');
     return response.data.data || {
@@ -276,17 +306,7 @@ export async function getTradeStats() {
     };
   } catch (error) {
     console.error('Failed to fetch trade stats:', parseApiError(error).message);
-    return {
-      totalTrades: 0,
-      winningTrades: 0,
-      losingTrades: 0,
-      winRate: 0,
-      totalPnl: 0,
-      avgPnl: 0,
-      avgWin: 0,
-      avgLoss: 0,
-      profitFactor: 0,
-    };
+    return localTrades.getTradeStats();
   }
 }
 
@@ -357,12 +377,16 @@ export async function getSymbolAnalysis() {
 
 // Get open trades
 export async function getOpenTrades(): Promise<Trade[]> {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.getTrades().filter(t => t.status === 'open');
+  }
+
   try {
     const response = await tradeApiClient.get<{ success: boolean; data: any[] }>('/trades/open');
     return response.data.data.map(mapApiTrade);
   } catch (error) {
     console.error('Failed to fetch open trades:', parseApiError(error).message);
-    return [];
+    return localTrades.getTrades().filter(t => t.status === 'open');
   }
 }
 
@@ -373,6 +397,15 @@ export async function exitTrade(
   exitDate?: string,
   exitBrokerage?: number
 ): Promise<TradeResult> {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.updateTrade(id, {
+      exitPrice,
+      exitDate: exitDate || new Date().toISOString(),
+      exitBrokerage,
+      status: 'closed',
+    });
+  }
+
   try {
     const response = await tradeApiClient.post<{ success: boolean; data: any }>(`/trades/${id}/exit`, {
       exitPrice,
@@ -383,12 +416,21 @@ export async function exitTrade(
   } catch (error) {
     const errMsg = parseApiError(error).message;
     console.error('Failed to exit trade:', errMsg);
-    return { success: false, error: errMsg };
+    return localTrades.updateTrade(id, {
+      exitPrice,
+      exitDate: exitDate || new Date().toISOString(),
+      exitBrokerage,
+      status: 'closed',
+    });
   }
 }
 
 // Get monthly P&L data
 export async function getMonthlyPnL(): Promise<{ month: string; pnl: number }[]> {
+  if (USE_LOCAL_STORAGE) {
+    return localTrades.getMonthlyPnL();
+  }
+
   try {
     const trades = await getTrades();
     const monthlyMap = new Map<string, number>();
@@ -404,7 +446,7 @@ export async function getMonthlyPnL(): Promise<{ month: string; pnl: number }[]>
       .map(([month, pnl]) => ({ month, pnl }))
       .sort((a, b) => a.month.localeCompare(b.month));
   } catch {
-    return [];
+    return localTrades.getMonthlyPnL();
   }
 }
 
